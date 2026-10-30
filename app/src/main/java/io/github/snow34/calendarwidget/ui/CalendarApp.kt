@@ -94,7 +94,7 @@ fun CalendarApp(store: SecureStore, focus: DayFocus? = null) {
 @Composable
 private fun loadOccurrences(repo: CalendarRepository, refresh: Int, from: LocalDate, to: LocalDate): List<Occurrence> {
     val zone = ZoneId.systemDefault()
-    val state = produceState(emptyList(), repo, refresh, from, to) {
+    val state = produceState<List<Occurrence>>(emptyList(), repo, refresh, from, to) {
         value = withContext(Dispatchers.Default) {
             repo.occurrences(from.atStartOfDay(zone).toInstant(), to.atStartOfDay(zone).toInstant())
         }

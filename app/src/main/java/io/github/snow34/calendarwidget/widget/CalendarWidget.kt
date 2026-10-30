@@ -26,7 +26,6 @@ import io.github.snow34.calendarwidget.core.Occurrence
 import io.github.snow34.calendarwidget.data.CalendarRepository
 import io.github.snow34.calendarwidget.data.SecureStore
 import io.github.snow34.calendarwidget.ui.Format
-import io.github.snow34.calendarwidget.ui.MainActivity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.Instant
@@ -52,7 +51,7 @@ class CalendarWidget : GlanceAppWidget() {
             modifier = GlanceModifier.fillMaxSize()
                 .background(GlanceTheme.colors.widgetBackground)
                 .padding(12.dp)
-                .clickable(actionStartActivity<MainActivity>()),
+                .clickable(actionStartActivity(Widgets.openAppIntent())),
         ) {
             when {
                 !configured -> Line("Tap to add your calendar feed", bold = false)

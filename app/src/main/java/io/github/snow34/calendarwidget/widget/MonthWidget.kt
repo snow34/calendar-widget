@@ -21,7 +21,6 @@ import androidx.glance.appwidget.action.ActionCallback
 import androidx.glance.appwidget.action.actionRunCallback
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.provideContent
-import androidx.glance.appwidget.update
 import androidx.glance.background
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
@@ -40,7 +39,6 @@ import io.github.snow34.calendarwidget.core.Occurrence
 import io.github.snow34.calendarwidget.core.groupByDay
 import io.github.snow34.calendarwidget.data.CalendarRepository
 import io.github.snow34.calendarwidget.data.SecureStore
-import io.github.snow34.calendarwidget.ui.MainActivity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.DayOfWeek
@@ -191,12 +189,8 @@ class MonthWidget : GlanceAppWidget() {
 
     private fun nav(delta: Int): ActionParameters = actionParametersOf(NavDelta to delta)
 
-    private fun openApp(date: LocalDate?): Intent {
-        val uri = Uri.parse(if (date == null) "calendarwidget://open" else "calendarwidget://day/$date")
-        return Intent(Intent.ACTION_VIEW, uri)
-            .setClassName("io.github.snow34.calendarwidget", MainActivity::class.java.name)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-    }
+    private fun openApp(date: LocalDate?): Intent =
+        Widgets.openAppIntent(Uri.parse(if (date == null) "calendarwidget://open" else "calendarwidget://day/$date"))
 
     private companion object {
         val PAD = 6.dp
