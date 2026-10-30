@@ -41,7 +41,6 @@ import androidx.compose.ui.unit.dp
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG
 import androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
-import androidx.glance.appwidget.updateAll
 import io.github.snow34.calendarwidget.core.Occurrence
 import io.github.snow34.calendarwidget.data.CalendarRepository
 import io.github.snow34.calendarwidget.data.IcsFetcher
@@ -49,23 +48,29 @@ import io.github.snow34.calendarwidget.data.SecureStore
 import io.github.snow34.calendarwidget.sync.SyncOutcome
 import io.github.snow34.calendarwidget.sync.SyncWorker
 import io.github.snow34.calendarwidget.sync.Syncer
-import io.github.snow34.calendarwidget.widget.CalendarWidget
+import io.github.snow34.calendarwidget.widget.Widgets
+import io.github.snow34.calendarwidget.core.groupByDay
+import androidx.compose.runtime.LaunchedEffect
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneId
-import java.time.temporal.ChronoUnit
+
+/** One request to show a day. Identity equality on purpose: tapping the same day twice must still re-trigger. */
+class DayFocus(val day: LocalDate)
 
 private enum class Tab(val label: String) { Agenda("Agenda"), Month("Month"), Settings("Settings") }
 
 @Composable
-fun CalendarApp(store: SecureStore) {
+fun CalendarApp(store: SecureStore, focus: DayFocus? = null) {
     val context = LocalContext.current
     val repo = remember { CalendarRepository(store) }
     var tab by remember { mutableStateOf(if (store.hasUrl()) Tab.Agenda else Tab.Settings) }
     var refresh by remember { mutableIntStateOf(0) }
+    // Opened from a day in the month widget: jump to the Month tab.
+    LaunchedEffect(focus) { if (focus != null) tab = Tab.Month }
 
     Scaffold(
         bottomBar = {
@@ -79,7 +84,7 @@ fun CalendarApp(store: SecureStore) {
         Box(Modifier.padding(padding).fillMaxSize()) {
             when (tab) {
                 Tab.Agenda -> AgendaScreen(repo, refresh)
-                Tab.Month -> MonthScreen(repo, refresh)
+                Tab.Month -> MonthScreen(repo, refresh, focus)
                 Tab.Settings -> SettingsScreen(store, context, onChanged = { refresh++ })
             }
         }
@@ -129,20 +134,14 @@ private fun EventRow(o: Occurrence) {
 }
 
 @Composable
-private fun MonthScreen(repo: CalendarRepository, refresh: Int) {
-    var month by remember { mutableStateOf(YearMonth.now()) }
-    var selected by remember { mutableStateOf(LocalDate.now()) }
+private fun MonthScreen(repo: CalendarRepository, refresh: Int, focus: DayFocus?) {
+    var month by remember { mutableStateOf(YearMonth.from(focus?.day ?: LocalDate.now())) }
+    var selected by remember { mutableStateOf(focus?.day ?: LocalDate.now()) }
+    LaunchedEffect(focus) { if (focus != null) { month = YearMonth.from(focus.day); selected = focus.day } }
     val zone = ZoneId.systemDefault()
     val items = loadOccurrences(repo, refresh, month.atDay(1), month.plusMonths(1).atDay(1))
     // An event covers every day it overlaps (multi-day / all-day events).
-    val byDay: Map<LocalDate, List<Occurrence>> = buildMap<LocalDate, MutableList<Occurrence>> {
-        items.forEach { o ->
-            val first = o.start.atZone(zone).toLocalDate()
-            val last = o.end.atZone(zone).minus(1, ChronoUnit.MILLIS).toLocalDate().coerceAtLeast(first)
-            var d = first
-            while (!d.isAfter(last)) { getOrPut(d) { mutableListOf() }.add(o); d = d.plusDays(1) }
-        }
-    }
+    val byDay: Map<LocalDate, List<Occurrence>> = groupByDay(items, zone)
 
     Column(Modifier.fillMaxSize().padding(16.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -242,7 +241,7 @@ private fun SettingsScreen(store: SecureStore, context: android.content.Context,
                     enabled = hasUrl,
                     onClick = {
                         store.wipe(); SyncWorker.cancel(context); hasUrl = false; status = "URL and cached events deleted"
-                        scope.launch { CalendarWidget().updateAll(context) }
+                        scope.launch { Widgets.updateAll(context) }
                         onChanged()
                     },
                 ) { Text("Remove") }
@@ -264,7 +263,7 @@ private fun SettingsScreen(store: SecureStore, context: android.content.Context,
         item {
             ToggleRow("Show event titles on the widget", titles) {
                 titles = it; store.widgetShowTitles = it
-                scope.launch { CalendarWidget().updateAll(context) }
+                scope.launch { Widgets.updateAll(context) }
             }
             ToggleRow("Require fingerprint / screen lock to open the app", lock) { want ->
                 val ok = BiometricManager.from(context).canAuthenticate(BIOMETRIC_STRONG or DEVICE_CREDENTIAL) == BiometricManager.BIOMETRIC_SUCCESS

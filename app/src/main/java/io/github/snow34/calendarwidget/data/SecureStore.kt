@@ -43,6 +43,11 @@ class SecureStore(context: Context) {
         get() = prefs.getBoolean(KEY_WIDGET_TITLES, false)
         set(v) = prefs.edit().putBoolean(KEY_WIDGET_TITLES, v).apply()
 
+    /** Months away from the current one that the month widget is showing (0 = this month). */
+    var widgetMonthOffset: Int
+        get() = prefs.getInt(KEY_MONTH_OFFSET, 0)
+        set(v) = prefs.edit().putInt(KEY_MONTH_OFFSET, v.coerceIn(-120, 120)).apply()
+
     var appLockEnabled: Boolean
         get() = prefs.getBoolean(KEY_APP_LOCK, false)
         set(v) = prefs.edit().putBoolean(KEY_APP_LOCK, v).apply()
@@ -73,5 +78,6 @@ class SecureStore(context: Context) {
         const val KEY_INTERVAL = "interval_hours"
         const val KEY_WIDGET_TITLES = "widget_titles"
         const val KEY_APP_LOCK = "app_lock"
+        const val KEY_MONTH_OFFSET = "widget_month_offset"
     }
 }

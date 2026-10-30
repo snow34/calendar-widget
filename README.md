@@ -42,6 +42,8 @@ The app reads your calendar through a private web address, so you don't have to 
 3. Wait. A progress bar at the bottom says it is downloading things. The first time this can take 5-15 minutes.
    Wait until it stops.
 4. If you do not see a folder called **app** on the left, click **File → Sync Project with Gradle Files** and wait again.
+5. Check the bottom panel. If the sync worked, the top bar has a green **▶ Run** button with the name **app** next to it.
+   If it still says **Add Configuration** and ▶ is grey, the sync failed. See "If something goes wrong" below.
 
 ### Part 3: Test it on your computer with a virtual phone
 
@@ -54,11 +56,21 @@ A "virtual phone" (called an *emulator*) is a fake phone that runs in a window o
 4. Click **Finish**.
 5. At the top of the window, make sure the virtual phone is selected, then click the green **▶ Run** button.
 6. Wait for the phone window to start (a few minutes the first time). The app opens by itself.
+   **Important:** the virtual phone already has its own built-in "Calendar" app and widget. That is *not* this app.
+   Ours is called **Private Calendar**. Swipe up on the home screen to find it in the app list.
 7. In the app, open **Settings**, paste your secret address (Part 0), and press **Save & sync**.
+   (Copy the address on your PC, then in the virtual phone click in the box and press **Ctrl+V**.)
 8. Open the **Agenda** and **Month** tabs to see your events.
 
-To try the widget: on the virtual phone's home screen, press and hold on an empty spot, tap **Widgets**,
-find **Private Calendar**, and drag it onto the screen.
+**Widgets.** On the virtual phone's home screen, press and hold on an empty spot, tap **Widgets**,
+find **Private Calendar**, and drag one onto the screen. There are two:
+- **Private Calendar – Month**: the whole month. Each day shows your event names. Use the arrows
+  to change month, tap the month name to come back to this month, and tap a day to open it in the app.
+  Make the widget as large as you can so the names fit.
+- **Private Calendar – Upcoming**: a short list of what is coming next.
+
+For privacy, widgets show dots instead of event names until you switch on **Show event titles on the widget**
+in the app's **Settings** tab. Do that to see names in the Month widget.
 
 ### Part 4: Put it on your real phone
 
@@ -70,8 +82,8 @@ find **Private Calendar**, and drag it onto the screen.
 4. In Android Studio, at the top, open the device list and choose your phone's name.
 5. Click the green **▶ Run** button. The app is installed and starts on your phone.
 6. Open the app's **Settings** tab, paste your secret address and press **Save & sync**.
-7. To add the widget: press and hold on an empty spot of your home screen, tap **Widgets**,
-   find **Private Calendar**, and drag it onto the screen.
+7. To add a widget: press and hold on an empty spot of your home screen, tap **Widgets**,
+   find **Private Calendar – Month** (or **– Upcoming**), and drag it onto the screen.
 
 **No cable? Copy the app file instead.**
 1. In Android Studio choose **Build → Build Bundle(s) / APK(s) → Build APK(s)**.
@@ -85,10 +97,13 @@ find **Private Calendar**, and drag it onto the screen.
 |---|---|
 | Red errors after opening the project | Click **File → Sync Project with Gradle Files**. If errors stay, copy the first red message and send it for help. |
 | No **app** folder on the left | Same: **File → Sync Project with Gradle Files**. |
+| "Could not find com.google.…" during sync | Make sure you have the latest version of this project (download the ZIP again), then click **Try Again** in the yellow bar. |
+| The virtual phone shows a calendar but no iCal option | That is the phone's built-in calendar. Open **Private Calendar** from the app list instead. |
 | Your phone isn't in the device list | Use a data cable (not charge-only), unlock the phone, tap **Allow** on the phone, and make sure USB debugging is on. |
 | "App not installed" on the phone | Your phone must be Android 11 or newer. Remove any older copy of the app and try again. |
 | "Feed rejected (HTTP 404)" in the app | The secret address changed or was reset. Copy the new one from Google Calendar. |
-| Widget shows "Event" instead of names | That is on purpose, for privacy. Turn on **Show event titles on the widget** in Settings. |
+| Widget shows dots or "Event" instead of names | That is on purpose, for privacy. Turn on **Show event titles on the widget** in Settings. |
+| Month widget cells are too small to read | Press and hold the widget, then drag its edges to make it bigger. |
 
 ---
 
@@ -97,7 +112,7 @@ find **Private Calendar**, and drag it onto the screen.
 - You paste your calendar's **secret iCal address** once. No Google sign-in, OAuth or Google code is involved.
 - A background job downloads the calendar file over HTTPS and stores it encrypted (AES-256-GCM, with a key
   that can't be taken out of the phone's Keystore). The address is stored the same way.
-- The app (agenda and month views) and the widget read the encrypted copy. Repeating events, exceptions and
+- The app (agenda and month views) and the two widgets (month grid, upcoming list) read the encrypted copy. Repeating events, exceptions and
   time zones are worked out by the `core` module.
 
 ## Privacy model
@@ -109,7 +124,7 @@ find **Private Calendar**, and drag it onto the screen.
 | Network | HTTPS only, system certificate authorities only, no plain http, no redirects to http |
 | Backups | Disabled; transfer rules exclude everything |
 | Screen | Screenshots and the recent-apps preview are blocked |
-| Widget | Shows times only by default; titles are opt-in |
+| Widgets | Show dots / times only by default; event titles are opt-in |
 | App lock | Optional fingerprint / screen lock |
 | Logging | The address and event contents are never logged |
 
@@ -124,6 +139,7 @@ operating system is outside the app's control (this project assumes a de-Googled
 - `core/` is pure Kotlin/JVM: ICS parser and recurrence expander (RRULE, EXDATE, RECURRENCE-ID, DST-safe). Unit tested.
 - `app/` is the Android app (Jetpack Compose, Glance widget, WorkManager, Keystore). Min SDK 30.
 - `:app` is included only when an Android SDK is found (`ANDROID_HOME`, `ANDROID_SDK_ROOT` or `local.properties`).
+- Shared logic worth testing (parsing, recurrence, placing events on days) lives in `core/`; `app/` stays thin.
 
 ```bash
 ./gradlew :core:test                                  # no Android SDK needed

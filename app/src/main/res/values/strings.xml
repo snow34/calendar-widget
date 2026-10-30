@@ -2,4 +2,7 @@
 <resources>
     <string name="app_name">Private Calendar</string>
     <string name="widget_description">Upcoming events from your calendar</string>
+    <string name="widget_upcoming_label">Private Calendar – Upcoming</string>
+    <string name="widget_month_label">Private Calendar – Month</string>
+    <string name="widget_month_description">The whole month with your events in each day</string>
 </resources>

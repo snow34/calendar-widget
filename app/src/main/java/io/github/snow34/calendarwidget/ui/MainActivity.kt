@@ -1,5 +1,6 @@
 package io.github.snow34.calendarwidget.ui
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.compose.setContent
@@ -23,25 +24,42 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import io.github.snow34.calendarwidget.data.SecureStore
+import java.time.LocalDate
+import java.time.format.DateTimeParseException
 
 class MainActivity : FragmentActivity() {
     private lateinit var store: SecureStore
     private var unlocked by mutableStateOf(false)
+    private var focus by mutableStateOf<DayFocus?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // Hides content from screenshots, screen recording and the recents thumbnail.
         window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
         store = SecureStore(this)
+        focus = dayFrom(intent)?.let(::DayFocus)
         setContent {
             MaterialTheme {
                 if (unlocked || !store.appLockEnabled) {
-                    CalendarApp(store)
+                    CalendarApp(store, focus)
                 } else {
                     LockedScreen(onUnlock = ::authenticate)
                 }
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        focus = dayFrom(intent)?.let(::DayFocus)
+    }
+
+    /** The month widget opens `calendarwidget://day/2025-03-14`. Anything else is ignored. */
+    private fun dayFrom(intent: Intent?): LocalDate? {
+        val uri = intent?.data ?: return null
+        if (uri.scheme != "calendarwidget" || uri.host != "day") return null
+        return try { LocalDate.parse(uri.lastPathSegment) } catch (_: DateTimeParseException) { null }
     }
 
     override fun onStart() {

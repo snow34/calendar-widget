@@ -1,12 +1,6 @@
 pluginManagement {
     repositories {
-        google {
-            content {
-                includeGroupAndSubgroups("com.android")
-                includeGroupAndSubgroups("androidx")
-                includeGroupAndSubgroups("com.google.android")
-            }
-        }
+        google()
         mavenCentral()
         gradlePluginPortal()
     }
@@ -15,13 +9,7 @@ pluginManagement {
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
-        google {
-            content {
-                includeGroupAndSubgroups("com.android")
-                includeGroupAndSubgroups("androidx")
-                includeGroupAndSubgroups("com.google.android")
-            }
-        }
+        google()
         mavenCentral()
     }
 }

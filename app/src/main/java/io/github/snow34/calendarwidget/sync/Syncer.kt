@@ -1,10 +1,9 @@
 package io.github.snow34.calendarwidget.sync
 
 import android.content.Context
-import androidx.glance.appwidget.updateAll
 import io.github.snow34.calendarwidget.data.IcsFetcher
 import io.github.snow34.calendarwidget.data.SecureStore
-import io.github.snow34.calendarwidget.widget.CalendarWidget
+import io.github.snow34.calendarwidget.widget.Widgets
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -36,7 +35,7 @@ object Syncer {
                 is IcsFetcher.Result.Failed -> SyncOutcome.Failed(r.reason, r.retryable)
             }
         }
-        if (outcome == SyncOutcome.Updated || outcome == SyncOutcome.NotModified) CalendarWidget().updateAll(app)
+        if (outcome == SyncOutcome.Updated || outcome == SyncOutcome.NotModified) Widgets.updateAll(app)
         return outcome
     }
 }
