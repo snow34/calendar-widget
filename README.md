@@ -97,7 +97,7 @@ in the app's **Settings** tab. Do that to see names in the Month widget.
 |---|---|
 | Red errors after opening the project | Click **File → Sync Project with Gradle Files**. If errors stay, copy the first red message and send it for help. |
 | No **app** folder on the left | Same: **File → Sync Project with Gradle Files**. |
-| "Incompatible Gradle JVM version" (Java 25) | Click **File → Settings → Build, Execution, Deployment → Build Tools → Gradle**, set **Gradle JDK** to **jbr-21** (any 17–21 works, not 25), click **OK**, then **File → Sync Project with Gradle Files**. |
+| "Incompatible Gradle JVM version" (Java 25) | Click **File → Settings → Build, Execution, Deployment → Build Tools → Gradle**. Open the **Gradle JDK** list and choose an entry whose grey text says **21** (for example **temurin-21**). Names can be misleading: on some versions of Android Studio "jbr-21" is really Java 25, so always check the grey version text. Never pick one that says 25. Click **OK**, then **File → Sync Project with Gradle Files**. If no entry shows 21, choose **Download JDK…**, set Version **21**, Vendor **Eclipse Temurin**, and click **Download**. |
 | "Could not find com.google.…" during sync | Make sure you have the latest version of this project (download the ZIP again), then click **Try Again** in the yellow bar. |
 | The virtual phone shows a calendar but no iCal option | That is the phone's built-in calendar. Open **Private Calendar** from the app list instead. |
 | Your phone isn't in the device list | Use a data cable (not charge-only), unlock the phone, tap **Allow** on the phone, and make sure USB debugging is on. |
