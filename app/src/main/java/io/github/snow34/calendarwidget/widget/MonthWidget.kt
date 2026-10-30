@@ -4,6 +4,9 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -47,8 +50,6 @@ import io.github.snow34.calendarwidget.core.Occurrence
 import io.github.snow34.calendarwidget.core.groupByDay
 import io.github.snow34.calendarwidget.data.CalendarRepository
 import io.github.snow34.calendarwidget.data.SecureStore
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
@@ -62,20 +63,28 @@ class MonthWidget : GlanceAppWidget() {
     override val sizeMode: SizeMode = SizeMode.Exact
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
+        provideContent {
+            // Re-read settings and events whenever Widgets.revision changes (see Widgets.revision for why).
+            val revision by Widgets.revision.collectAsState()
+            val data = remember(revision) { load(context) }
+            GlanceTheme { Content(data.configured, data.showTitles, data.opacity, data.month, data.byDay) }
+        }
+    }
+
+    private class MonthData(
+        val configured: Boolean, val showTitles: Boolean, val opacity: Int,
+        val month: YearMonth, val byDay: Map<LocalDate, List<Occurrence>>,
+    )
+
+    private fun load(context: Context): MonthData {
         val store = SecureStore(context)
-        val configured = store.hasUrl()
-        val showTitles = store.widgetShowTitles
-        val opacity = store.widgetOpacityPercent
         val month = YearMonth.now().plusMonths(store.widgetMonthOffset.toLong())
         val zone = ZoneId.systemDefault()
-        val byDay = withContext(Dispatchers.Default) {
-            val occ = CalendarRepository(store).occurrences(
-                month.atDay(1).atStartOfDay(zone).toInstant(),
-                month.plusMonths(1).atDay(1).atStartOfDay(zone).toInstant(),
-            )
-            groupByDay(occ, zone)
-        }
-        provideContent { GlanceTheme { Content(configured, showTitles, opacity, month, byDay) } }
+        val occ = CalendarRepository(store).occurrences(
+            month.atDay(1).atStartOfDay(zone).toInstant(),
+            month.plusMonths(1).atDay(1).atStartOfDay(zone).toInstant(),
+        )
+        return MonthData(store.hasUrl(), store.widgetShowTitles, store.widgetOpacityPercent, month, groupByDay(occ, zone))
     }
 
     @Composable
@@ -247,6 +256,7 @@ class MonthNavCallback : ActionCallback {
         val store = SecureStore(context)
         val delta = parameters[NavDelta] ?: 0
         store.widgetMonthOffset = if (delta == 0) 0 else store.widgetMonthOffset + delta
+        Widgets.requestRefresh()
         MonthWidget().update(context, glanceId)
     }
 }

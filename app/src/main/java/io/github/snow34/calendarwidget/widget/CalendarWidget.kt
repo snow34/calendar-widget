@@ -2,6 +2,9 @@ package io.github.snow34.calendarwidget.widget
 
 import android.content.Context
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
@@ -26,24 +29,28 @@ import io.github.snow34.calendarwidget.core.Occurrence
 import io.github.snow34.calendarwidget.data.CalendarRepository
 import io.github.snow34.calendarwidget.data.SecureStore
 import io.github.snow34.calendarwidget.ui.Format
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
 class CalendarWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val store = SecureStore(context)
-        val configured = store.hasUrl()
-        val showTitles = store.widgetShowTitles
-        val opacity = store.widgetOpacityPercent
-        val items = withContext(Dispatchers.Default) {
-            val now = Instant.now()
-            CalendarRepository(store).occurrences(now.minus(1, ChronoUnit.HOURS), now.plus(14, ChronoUnit.DAYS))
-                .filter { it.end.isAfter(now) }
-                .take(MAX_ITEMS)
+        provideContent {
+            // Re-read settings and events whenever Widgets.revision changes (see Widgets.revision for why).
+            val revision by Widgets.revision.collectAsState()
+            val data = remember(revision) { load(context) }
+            GlanceTheme { Content(data.configured, data.showTitles, data.opacity, data.items) }
         }
-        provideContent { GlanceTheme { Content(configured, showTitles, opacity, items) } }
+    }
+
+    private class UpcomingData(val configured: Boolean, val showTitles: Boolean, val opacity: Int, val items: List<Occurrence>)
+
+    private fun load(context: Context): UpcomingData {
+        val store = SecureStore(context)
+        val now = Instant.now()
+        val items = CalendarRepository(store).occurrences(now.minus(1, ChronoUnit.HOURS), now.plus(14, ChronoUnit.DAYS))
+            .filter { it.end.isAfter(now) }
+            .take(MAX_ITEMS)
+        return UpcomingData(store.hasUrl(), store.widgetShowTitles, store.widgetOpacityPercent, items)
     }
 
     @Composable
