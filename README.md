@@ -97,6 +97,7 @@ in the app's **Settings** tab. Do that to see names in the Month widget.
 |---|---|
 | Red errors after opening the project | Click **File → Sync Project with Gradle Files**. If errors stay, copy the first red message and send it for help. |
 | No **app** folder on the left | Same: **File → Sync Project with Gradle Files**. |
+| "Incompatible Gradle JVM version" (Java 25) | Click **File → Settings → Build, Execution, Deployment → Build Tools → Gradle**, set **Gradle JDK** to **jbr-21** (any 17–21 works, not 25), click **OK**, then **File → Sync Project with Gradle Files**. |
 | "Could not find com.google.…" during sync | Make sure you have the latest version of this project (download the ZIP again), then click **Try Again** in the yellow bar. |
 | The virtual phone shows a calendar but no iCal option | That is the phone's built-in calendar. Open **Private Calendar** from the app list instead. |
 | Your phone isn't in the device list | Use a data cable (not charge-only), unlock the phone, tap **Allow** on the phone, and make sure USB debugging is on. |
