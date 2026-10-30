@@ -79,6 +79,11 @@ Widgets show event names by default. Anyone who can see your home screen can rea
 want to hide them, switch off **Show event titles on the widget** in the app's **Settings** tab. The Month
 widget then shows plain colored stripes with no text, and the Upcoming widget shows "Event".
 
+**See-through widgets.** In the app's **Settings** tab, drag the **Widget background** slider. 100% is solid,
+0% is completely see-through, and it moves in steps of 5%. Let go of the slider and both widgets update
+(give them a second). Only the background fades; the colored event bars and the text stay solid. On a bright or
+busy wallpaper a value between 30% and 60% is usually easiest to read.
+
 ### Part 4: Put it on your real phone
 
 1. On your phone open **Settings → About phone** and tap **Build number** seven times in a row.

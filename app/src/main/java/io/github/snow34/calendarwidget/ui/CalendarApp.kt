@@ -27,11 +27,13 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -67,6 +69,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
+import kotlin.math.roundToInt
 import java.time.YearMonth
 import java.time.ZoneId
 
@@ -258,6 +261,7 @@ private fun SettingsScreen(store: SecureStore, context: android.content.Context,
     var busy by remember { mutableStateOf(false) }
     var interval by remember { mutableIntStateOf(store.syncIntervalHours) }
     var titles by remember { mutableStateOf(store.widgetShowTitles) }
+    var opacity by remember { mutableFloatStateOf(store.widgetOpacityPercent.toFloat()) }
     var lock by remember { mutableStateOf(store.appLockEnabled) }
 
     fun runSync() {
@@ -336,6 +340,19 @@ private fun SettingsScreen(store: SecureStore, context: android.content.Context,
                 titles = it; store.widgetShowTitles = it
                 scope.launch { Widgets.updateAll(context) }
             }
+            Text("Widget background: ${opacity.roundToInt()}%", modifier = Modifier.padding(top = 8.dp))
+            Slider(
+                value = opacity,
+                onValueChange = { opacity = it },
+                valueRange = 0f..100f,
+                steps = 19, // 5% steps
+                // Save and redraw once when the finger lifts, not on every tick of the drag.
+                onValueChangeFinished = {
+                    store.widgetOpacityPercent = opacity.roundToInt()
+                    scope.launch { Widgets.updateAll(context) }
+                },
+            )
+            Text("0% is see-through, 100% is solid. Event bars and text always stay solid.", style = MaterialTheme.typography.bodySmall)
             ToggleRow("Require fingerprint / screen lock to open the app", lock) { want ->
                 val ok = BiometricManager.from(context).canAuthenticate(BIOMETRIC_STRONG or DEVICE_CREDENTIAL) == BiometricManager.BIOMETRIC_SUCCESS
                 if (want && !ok) status = "Set up a screen lock on the device first" else { lock = want; store.appLockEnabled = want }

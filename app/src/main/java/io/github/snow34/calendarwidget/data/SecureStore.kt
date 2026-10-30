@@ -2,6 +2,7 @@ package io.github.snow34.calendarwidget.data
 
 import android.content.Context
 import android.util.AtomicFile
+import io.github.snow34.calendarwidget.core.WidgetOpacity
 import java.io.File
 
 /**
@@ -48,6 +49,11 @@ class SecureStore(context: Context) {
         get() = prefs.getInt(KEY_MONTH_OFFSET, 0)
         set(v) = prefs.edit().putInt(KEY_MONTH_OFFSET, v.coerceIn(-120, 120)).apply()
 
+    /** How solid the widget background is: 0 = fully see-through, 100 = solid (event bars and text are unaffected). */
+    var widgetOpacityPercent: Int
+        get() = WidgetOpacity.clampPercent(prefs.getInt(KEY_WIDGET_OPACITY, WidgetOpacity.DEFAULT_PERCENT))
+        set(v) = prefs.edit().putInt(KEY_WIDGET_OPACITY, WidgetOpacity.clampPercent(v)).apply()
+
     var appLockEnabled: Boolean
         get() = prefs.getBoolean(KEY_APP_LOCK, false)
         set(v) = prefs.edit().putBoolean(KEY_APP_LOCK, v).apply()
@@ -79,5 +85,6 @@ class SecureStore(context: Context) {
         const val KEY_WIDGET_TITLES = "widget_titles"
         const val KEY_APP_LOCK = "app_lock"
         const val KEY_MONTH_OFFSET = "widget_month_offset"
+        const val KEY_WIDGET_OPACITY = "widget_opacity_percent"
     }
 }

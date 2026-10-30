@@ -36,20 +36,21 @@ class CalendarWidget : GlanceAppWidget() {
         val store = SecureStore(context)
         val configured = store.hasUrl()
         val showTitles = store.widgetShowTitles
+        val opacity = store.widgetOpacityPercent
         val items = withContext(Dispatchers.Default) {
             val now = Instant.now()
             CalendarRepository(store).occurrences(now.minus(1, ChronoUnit.HOURS), now.plus(14, ChronoUnit.DAYS))
                 .filter { it.end.isAfter(now) }
                 .take(MAX_ITEMS)
         }
-        provideContent { GlanceTheme { Content(configured, showTitles, items) } }
+        provideContent { GlanceTheme { Content(configured, showTitles, opacity, items) } }
     }
 
     @Composable
-    private fun Content(configured: Boolean, showTitles: Boolean, items: List<Occurrence>) {
+    private fun Content(configured: Boolean, showTitles: Boolean, opacity: Int, items: List<Occurrence>) {
         Column(
             modifier = GlanceModifier.fillMaxSize()
-                .background(GlanceTheme.colors.widgetBackground)
+                .background(widgetBackgroundColor(opacity))
                 .padding(12.dp)
                 .clickable(actionStartActivity(Widgets.openAppIntent())),
         ) {

@@ -65,6 +65,7 @@ class MonthWidget : GlanceAppWidget() {
         val store = SecureStore(context)
         val configured = store.hasUrl()
         val showTitles = store.widgetShowTitles
+        val opacity = store.widgetOpacityPercent
         val month = YearMonth.now().plusMonths(store.widgetMonthOffset.toLong())
         val zone = ZoneId.systemDefault()
         val byDay = withContext(Dispatchers.Default) {
@@ -74,18 +75,18 @@ class MonthWidget : GlanceAppWidget() {
             )
             groupByDay(occ, zone)
         }
-        provideContent { GlanceTheme { Content(configured, showTitles, month, byDay) } }
+        provideContent { GlanceTheme { Content(configured, showTitles, opacity, month, byDay) } }
     }
 
     @Composable
-    private fun Content(configured: Boolean, showTitles: Boolean, month: YearMonth, byDay: Map<LocalDate, List<Occurrence>>) {
+    private fun Content(configured: Boolean, showTitles: Boolean, opacity: Int, month: YearMonth, byDay: Map<LocalDate, List<Occurrence>>) {
         val size = LocalSize.current
         val locale = Locale.getDefault()
         val today = LocalDate.now()
 
         Column(
             modifier = GlanceModifier.fillMaxSize()
-                .background(GlanceTheme.colors.widgetBackground)
+                .background(widgetBackgroundColor(opacity))
                 .padding(PAD),
         ) {
             // Header: previous | month name (tap = back to this month) | next
