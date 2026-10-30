@@ -1,12 +1,19 @@
 package io.github.snow34.calendarwidget.ui
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -37,7 +44,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG
 import androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
@@ -124,7 +136,11 @@ private fun AgendaScreen(repo: CalendarRepository, refresh: Int) {
 
 @Composable
 private fun EventRow(o: Occurrence) {
-    Card(Modifier.fillMaxWidth().padding(vertical = 3.dp), colors = CardDefaults.cardColors()) {
+    val tint = eventTint(o.summary)
+    Card(
+        Modifier.fillMaxWidth().padding(vertical = 3.dp),
+        colors = CardDefaults.cardColors(containerColor = tint.bar, contentColor = tint.text),
+    ) {
         Column(Modifier.padding(12.dp)) {
             Text(o.summary.ifBlank { "(no title)" }, style = MaterialTheme.typography.bodyLarge)
             Text(Format.timeRange(o), style = MaterialTheme.typography.bodySmall)
@@ -133,48 +149,103 @@ private fun EventRow(o: Occurrence) {
     }
 }
 
+private val DAY_NUM_H = 18.dp
+private val BAR_H = 14.dp
+private val BAR_GAP = 2.dp
+private val CELL_H = 68.dp
+private val TODAY_BG = Color(0xFFA8C7FA)
+private val TODAY_TEXT = Color(0xFF062E6F)
+
 @Composable
 private fun MonthScreen(repo: CalendarRepository, refresh: Int, focus: DayFocus?) {
     var month by remember { mutableStateOf(YearMonth.from(focus?.day ?: LocalDate.now())) }
     var selected by remember { mutableStateOf(focus?.day ?: LocalDate.now()) }
     LaunchedEffect(focus) { if (focus != null) { month = YearMonth.from(focus.day); selected = focus.day } }
     val zone = ZoneId.systemDefault()
+    val today = LocalDate.now()
     val items = loadOccurrences(repo, refresh, month.atDay(1), month.plusMonths(1).atDay(1))
     // An event covers every day it overlaps (multi-day / all-day events).
     val byDay: Map<LocalDate, List<Occurrence>> = groupByDay(items, zone)
+    val dayItems = byDay[selected].orEmpty()
 
-    Column(Modifier.fillMaxSize().padding(16.dp)) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = { month = month.minusMonths(1) }) { Text("‹") }
-            Text("${month.month.name.lowercase().replaceFirstChar { it.uppercase() }} ${month.year}", style = MaterialTheme.typography.titleMedium)
-            TextButton(onClick = { month = month.plusMonths(1) }) { Text("›") }
-        }
-        val lead = month.atDay(1).dayOfWeek.value - 1 // Monday-first grid
-        val cells = List(lead) { null } + (1..month.lengthOfMonth()).map { month.atDay(it) }
-        cells.chunked(7).forEach { week ->
-            Row(Modifier.fillMaxWidth()) {
-                (0 until 7).forEach { i ->
-                    val d = week.getOrNull(i)
-                    Box(
-                        Modifier.weight(1f).size(48.dp).let { if (d != null) it.clickable { selected = d } else it },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        if (d != null) {
-                            val has = byDay.containsKey(d)
-                            Text(
-                                text = if (has) "${d.dayOfMonth}•" else "${d.dayOfMonth}",
-                                style = if (d == selected) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyMedium,
-                                color = if (d == selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                            )
+    // One scrolling list: the grid is taller now, so the selected day's events sit below it.
+    LazyColumn(Modifier.fillMaxSize().padding(horizontal = 8.dp), contentPadding = PaddingValues(vertical = 8.dp)) {
+        item(key = "grid") {
+            Column {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    TextButton(onClick = { month = month.minusMonths(1) }) { Text("‹") }
+                    Text("${month.month.name.lowercase().replaceFirstChar { it.uppercase() }} ${month.year}", style = MaterialTheme.typography.titleMedium)
+                    TextButton(onClick = { month = month.plusMonths(1) }) { Text("›") }
+                }
+                val lead = month.atDay(1).dayOfWeek.value - 1 // Monday-first grid
+                val cells = List(lead) { null } + (1..month.lengthOfMonth()).map { month.atDay(it) }
+                cells.chunked(7).forEach { week ->
+                    Row(Modifier.fillMaxWidth()) {
+                        (0 until 7).forEach { i ->
+                            val d = week.getOrNull(i)
+                            Box(Modifier.weight(1f)) {
+                                if (d == null) {
+                                    Spacer(Modifier.height(CELL_H))
+                                } else {
+                                    MonthDayCell(d, d == today, d == selected, byDay[d].orEmpty()) { selected = d }
+                                }
+                            }
                         }
                     }
                 }
             }
         }
-        Text(Format.date(selected), style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 12.dp, bottom = 4.dp))
-        val dayItems = byDay[selected].orEmpty()
-        if (dayItems.isEmpty()) Text("No events", style = MaterialTheme.typography.bodySmall)
-        LazyColumn { items(dayItems, key = { "${it.uid}-${it.start}" }) { EventRow(it) } }
+        item(key = "selected-title") {
+            Text(Format.date(selected), style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 12.dp, bottom = 4.dp, start = 4.dp))
+        }
+        if (dayItems.isEmpty()) item(key = "no-events") { Text("No events", style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 4.dp)) }
+        items(dayItems, key = { "${it.uid}-${it.start}" }) { EventRow(it) }
+    }
+}
+
+/** Day number (today in a light circle) with one colored, titled bar per event, as in the Month widget. */
+@Composable
+private fun MonthDayCell(date: LocalDate, isToday: Boolean, isSelected: Boolean, events: List<Occurrence>, onClick: () -> Unit) {
+    val slots = ((CELL_H - DAY_NUM_H + BAR_GAP) / (BAR_H + BAR_GAP)).toInt()
+    val overflow = events.size > slots
+    // When there is not room for everything, the last slot becomes a "+N" line.
+    val shown = if (overflow && slots >= 2) slots - 1 else slots.coerceAtMost(events.size)
+
+    Column(
+        Modifier.fillMaxWidth().height(CELL_H).padding(1.dp)
+            .let { if (isSelected) it.border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(6.dp)) else it }
+            .clickable(onClick = onClick)
+            .padding(1.dp),
+        verticalArrangement = Arrangement.spacedBy(BAR_GAP),
+    ) {
+        Box(Modifier.fillMaxWidth().height(DAY_NUM_H), contentAlignment = Alignment.Center) {
+            if (isToday) {
+                Box(Modifier.size(DAY_NUM_H).background(TODAY_BG, CircleShape), contentAlignment = Alignment.Center) {
+                    Text("${date.dayOfMonth}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TODAY_TEXT)
+                }
+            } else {
+                Text("${date.dayOfMonth}", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface)
+            }
+        }
+        events.take(shown).forEach { e ->
+            val tint = eventTint(e.summary)
+            Box(
+                Modifier.fillMaxWidth().height(BAR_H).background(tint.bar, RoundedCornerShape(4.dp)).padding(horizontal = 2.dp),
+                contentAlignment = Alignment.CenterStart,
+            ) {
+                Text(
+                    e.summary.ifBlank { "(no title)" },
+                    fontSize = 9.sp, lineHeight = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, color = tint.text,
+                )
+            }
+        }
+        if (overflow && slots >= 2) {
+            Text(
+                "+${events.size - shown}", fontSize = 9.sp, lineHeight = 11.sp, maxLines = 1,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth(),
+            )
+        }
     }
 }
 

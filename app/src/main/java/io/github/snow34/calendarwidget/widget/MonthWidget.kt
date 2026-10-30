@@ -42,6 +42,7 @@ import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import io.github.snow34.calendarwidget.R
 import io.github.snow34.calendarwidget.core.EventColors
+import io.github.snow34.calendarwidget.ui.eventTint
 import io.github.snow34.calendarwidget.core.Occurrence
 import io.github.snow34.calendarwidget.core.groupByDay
 import io.github.snow34.calendarwidget.data.CalendarRepository
@@ -189,7 +190,6 @@ class MonthWidget : GlanceAppWidget() {
 
             events.take(shown).forEach { e ->
                 val title = e.summary.ifBlank { "(no title)" }
-                val color = EventColors.colorFor(e.summary)
                 Box(
                     GlanceModifier.fillMaxWidth().height(barH)
                         .background(ImageProvider(BAR_RES[EventColors.indexFor(e.summary)]), contentScale = ContentScale.FillBounds),
@@ -199,7 +199,7 @@ class MonthWidget : GlanceAppWidget() {
                         Text(
                             title, maxLines = 1,
                             modifier = GlanceModifier.padding(horizontal = 2.dp),
-                            style = TextStyle(color = ColorProvider(opaque(color.text)), fontSize = 9.sp),
+                            style = TextStyle(color = ColorProvider(eventTint(e.summary).text), fontSize = 9.sp),
                         )
                     }
                 }
@@ -235,9 +235,6 @@ class MonthWidget : GlanceAppWidget() {
             R.drawable.bar_0, R.drawable.bar_1, R.drawable.bar_2, R.drawable.bar_3,
             R.drawable.bar_4, R.drawable.bar_5, R.drawable.bar_6, R.drawable.bar_7,
         )
-
-        /** Palette colors are plain 0xRRGGBB; Compose wants an opaque ARGB int. */
-        fun opaque(rgb: Int) = Color(0xFF000000.toInt() or rgb)
     }
 }
 

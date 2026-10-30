@@ -60,7 +60,11 @@ A "virtual phone" (called an *emulator*) is a fake phone that runs in a window o
    Ours is called **Private Calendar**. Swipe up on the home screen to find it in the app list.
 7. In the app, open **Settings**, paste your secret address (Part 0), and press **Save & sync**.
    (Copy the address on your PC, then in the virtual phone click in the box and press **Ctrl+V**.)
-8. Open the **Agenda** and **Month** tabs to see your events.
+8. Open the **Agenda** and **Month** tabs to see your events. Every event gets a color, and the same
+   event always gets the same color in the app and in the widgets (the colors are picked automatically from the
+   event's name, because Google's private calendar address doesn't include the colors you set in Google Calendar).
+   In the **Month** tab each day shows colored bars with the event names, today's date has a light circle,
+   and tapping a day lists its events below the grid. If a day has more events than fit, it shows "+2" (or similar).
 
 **Widgets.** On the virtual phone's home screen, press and hold on an empty spot, tap **Widgets**,
 find **Private Calendar**, and drag one onto the screen. There are two:
@@ -88,11 +92,26 @@ widget then shows plain colored stripes with no text, and the Upcoming widget sh
 7. To add a widget: press and hold on an empty spot of your home screen, tap **Widgets**,
    find **Private Calendar – Month** (or **– Upcoming**), and drag it onto the screen.
 
-**No cable? Copy the app file instead.**
-1. In Android Studio choose **Build → Build Bundle(s) / APK(s) → Build APK(s)**.
-2. When it finishes, click **locate** in the pop-up. You will see the file `app-debug.apk`.
-3. Send that file to your phone (cable, cloud drive, etc.) and tap it on the phone. If the phone says
-   installing from this source is blocked, allow it for the app you opened the file with, then try again.
+### Part 5: Make an app file (APK) to install on any phone
+
+An **APK** is the installable app file. You make it once on your PC and can then copy it to your phone
+without a cable.
+
+1. In Android Studio's top menu click **Build**. The next item is called
+   **Generate App Bundles or APKs** in new versions, or **Build Bundle(s) / APK(s)** in older ones.
+2. Choose **Generate APKs** (older versions: **Build APK(s)**).
+3. Wait until a pop-up in the bottom-right corner says the APK was generated. The first build can take a few minutes.
+4. Click **locate** in that pop-up. A Windows folder opens with a file called `app-debug.apk`
+   (full path inside the project: `app\build\outputs\apk\debug\app-debug.apk`).
+5. Send that file to your phone (USB cable, a cloud drive, email to yourself...).
+6. On the phone, open the file (for example from the **Downloads** or **Files** app) and tap **Install**.
+   If the phone says installing from this source is blocked, tap **Settings**, switch on **Allow from this
+   source** for the app you opened the file with, go back and tap **Install** again.
+7. Open **Private Calendar** from the app list, paste your secret address in **Settings**, and press **Save & sync**.
+
+This is a *debug* app file. That is fine for your own phone. It is signed with a throwaway key made by
+Android Studio, so you can only update it with another build from the same PC. To update, build a new APK and
+install it over the old one.
 
 ### If something goes wrong
 
