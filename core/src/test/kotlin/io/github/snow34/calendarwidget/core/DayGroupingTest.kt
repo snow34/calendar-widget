@@ -38,6 +38,16 @@ class DayGroupingTest {
         assertEquals(setOf(local("2025-01-10")), g.keys)
     }
 
+    @Test fun dayListIsSortedAllDayFirstThenStartThenTitle() {
+        val late = occ("late", "2025-01-10T15:00:00Z", "2025-01-10T16:00:00Z")
+        val early = occ("early", "2025-01-10T07:00:00Z", "2025-01-10T08:00:00Z")
+        val holiday = occ("holiday", "2025-01-09T22:00:00Z", "2025-01-10T22:00:00Z", allDay = true)
+        val sameStartB = occ("b", "2025-01-10T09:00:00Z", "2025-01-10T10:00:00Z")
+        val sameStartA = occ("a", "2025-01-10T09:00:00Z", "2025-01-10T10:00:00Z")
+        val day = groupByDay(listOf(late, sameStartB, early, holiday, sameStartA), zone).getValue(local("2025-01-10"))
+        assertEquals(listOf("holiday", "early", "a", "b", "late"), day.map { it.summary })
+    }
+
     @Test fun absurdSpanIsCapped() {
         val g = groupByDay(listOf(occ("forever", "2025-01-01T00:00:00Z", "2125-01-01T00:00:00Z")), zone, maxSpanDays = 10)
         assertEquals(11, g.size)

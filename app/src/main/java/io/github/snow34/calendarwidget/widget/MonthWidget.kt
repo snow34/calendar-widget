@@ -4,12 +4,14 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
+import androidx.glance.ImageProvider
 import androidx.glance.LocalSize
 import androidx.glance.action.ActionParameters
 import androidx.glance.action.actionParametersOf
@@ -25,7 +27,9 @@ import androidx.glance.background
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
 import androidx.glance.layout.Column
+import androidx.glance.layout.ContentScale
 import androidx.glance.layout.Row
+import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
@@ -35,6 +39,9 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
+import androidx.glance.unit.ColorProvider
+import io.github.snow34.calendarwidget.R
+import io.github.snow34.calendarwidget.core.EventColors
 import io.github.snow34.calendarwidget.core.Occurrence
 import io.github.snow34.calendarwidget.core.groupByDay
 import io.github.snow34.calendarwidget.data.CalendarRepository
@@ -49,7 +56,7 @@ import java.time.format.TextStyle as DateTextStyle
 import java.util.Locale
 import kotlin.math.ceil
 
-/** Whole-month grid. Event titles are drawn inside each day when they fit and the user allowed titles. */
+/** Whole-month grid. Each event is a colored bar with its title under the day number (stripes if titles are hidden). */
 class MonthWidget : GlanceAppWidget() {
     override val sizeMode: SizeMode = SizeMode.Exact
 
@@ -114,7 +121,6 @@ class MonthWidget : GlanceAppWidget() {
             val weeks = ceil((lead + month.lengthOfMonth()) / 7.0).toInt()
             val cellW = ((size.width.value - PAD.value * 2) / 7f).dp
             val cellH = ((size.height.value - PAD.value * 2 - HEADER_H.value - WEEKDAY_H.value) / weeks).dp
-            val titleLines = ((cellH.value - DAY_NUM_H.value) / LINE_H.value).toInt().coerceAtLeast(0)
 
             Row(modifier = GlanceModifier.fillMaxWidth().height(WEEKDAY_H)) {
                 DayOfWeek.entries.forEach { d ->
@@ -134,7 +140,7 @@ class MonthWidget : GlanceAppWidget() {
                             Box(GlanceModifier.width(cellW).height(cellH)) {}
                         } else {
                             val date = month.atDay(dayNum)
-                            DayCell(date, date == today, byDay[date].orEmpty(), showTitles, titleLines, cellW, cellH)
+                            DayCell(date, date == today, byDay[date].orEmpty(), showTitles, cellW, cellH)
                         }
                     }
                 }
@@ -145,43 +151,65 @@ class MonthWidget : GlanceAppWidget() {
     @Composable
     private fun DayCell(
         date: LocalDate, isToday: Boolean, events: List<Occurrence>,
-        showTitles: Boolean, titleLines: Int, w: Dp, h: Dp,
+        showTitles: Boolean, w: Dp, h: Dp,
     ) {
+        val barH = if (showTitles) BAR_H else STRIPE_H
+        val slots = ((h.value - DAY_NUM_H.value + BAR_GAP.value) / (barH.value + BAR_GAP.value)).toInt()
+        val overflow = events.size > slots
+        // When there is not enough room for everything, the last slot becomes a "+N" line.
+        val shown = if (overflow && slots >= 2) slots - 1 else slots.coerceAtMost(events.size)
+
         Column(
             modifier = GlanceModifier.width(w).height(h).padding(1.dp).clickable(actionStartActivity(openApp(date))),
         ) {
-            Text(
-                "${date.dayOfMonth}",
-                modifier = GlanceModifier.fillMaxWidth().height(DAY_NUM_H),
-                style = TextStyle(
-                    color = if (isToday) GlanceTheme.colors.primary else GlanceTheme.colors.onSurface,
-                    fontSize = 11.sp,
-                    fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
-                    textAlign = TextAlign.Center,
-                ),
-            )
+            Box(GlanceModifier.fillMaxWidth().height(DAY_NUM_H), contentAlignment = Alignment.Center) {
+                if (isToday) {
+                    Box(
+                        GlanceModifier.width(DAY_NUM_H).height(DAY_NUM_H)
+                            .background(ImageProvider(R.drawable.today_circle), contentScale = ContentScale.FillBounds),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text("${date.dayOfMonth}", style = TextStyle(color = ColorProvider(TODAY_TEXT), fontSize = 11.sp, fontWeight = FontWeight.Bold))
+                    }
+                } else {
+                    Text("${date.dayOfMonth}", style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = 11.sp))
+                }
+            }
             if (events.isEmpty()) return@Column
-            if (showTitles && titleLines > 0) {
-                val overflow = events.size > titleLines
-                events.take(if (overflow) titleLines - 1 else titleLines).forEach { e ->
-                    Text(
-                        e.summary.ifBlank { "·" }, maxLines = 1,
-                        modifier = GlanceModifier.fillMaxWidth().background(GlanceTheme.colors.secondaryContainer),
-                        style = TextStyle(color = GlanceTheme.colors.onSecondaryContainer, fontSize = 8.sp),
-                    )
-                }
-                if (overflow) {
-                    Text(
-                        "+${events.size - (titleLines - 1)}", maxLines = 1,
-                        style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 8.sp),
-                    )
-                }
-            } else {
-                // Titles are off (privacy default) or the cell is too small: show how many events there are.
+
+            if (slots <= 0) {
+                // Cell too small for any bar: just show how many events there are.
                 Text(
                     "•".repeat(events.size.coerceAtMost(3)),
                     modifier = GlanceModifier.fillMaxWidth(),
                     style = TextStyle(color = GlanceTheme.colors.primary, fontSize = 9.sp, textAlign = TextAlign.Center),
+                )
+                return@Column
+            }
+
+            events.take(shown).forEach { e ->
+                val title = e.summary.ifBlank { "(no title)" }
+                val color = EventColors.colorFor(e.summary)
+                Box(
+                    GlanceModifier.fillMaxWidth().height(barH)
+                        .background(ImageProvider(BAR_RES[EventColors.indexFor(e.summary)]), contentScale = ContentScale.FillBounds),
+                    contentAlignment = Alignment.CenterStart,
+                ) {
+                    if (showTitles) {
+                        Text(
+                            title, maxLines = 1,
+                            modifier = GlanceModifier.padding(horizontal = 2.dp),
+                            style = TextStyle(color = ColorProvider(opaque(color.text)), fontSize = 9.sp),
+                        )
+                    }
+                }
+                Spacer(GlanceModifier.height(BAR_GAP))
+            }
+            if (overflow && slots >= 2) {
+                Text(
+                    "+${events.size - shown}", maxLines = 1,
+                    modifier = GlanceModifier.fillMaxWidth(),
+                    style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 9.sp, textAlign = TextAlign.Center),
                 )
             }
         }
@@ -196,8 +224,20 @@ class MonthWidget : GlanceAppWidget() {
         val PAD = 6.dp
         val HEADER_H = 32.dp
         val WEEKDAY_H = 14.dp
-        val DAY_NUM_H = 14.dp
-        val LINE_H = 11.dp
+        val DAY_NUM_H = 17.dp
+        val BAR_H = 13.dp
+        val STRIPE_H = 5.dp
+        val BAR_GAP = 2.dp
+        val TODAY_TEXT = Color(0xFF062E6F)
+
+        /** One rounded-rectangle drawable per palette entry (see EventColors.palette). */
+        val BAR_RES = intArrayOf(
+            R.drawable.bar_0, R.drawable.bar_1, R.drawable.bar_2, R.drawable.bar_3,
+            R.drawable.bar_4, R.drawable.bar_5, R.drawable.bar_6, R.drawable.bar_7,
+        )
+
+        /** Palette colors are plain 0xRRGGBB; Compose wants an opaque ARGB int. */
+        fun opaque(rgb: Int) = Color(0xFF000000.toInt() or rgb)
     }
 }
 

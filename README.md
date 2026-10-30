@@ -64,13 +64,16 @@ A "virtual phone" (called an *emulator*) is a fake phone that runs in a window o
 
 **Widgets.** On the virtual phone's home screen, press and hold on an empty spot, tap **Widgets**,
 find **Private Calendar**, and drag one onto the screen. There are two:
-- **Private Calendar – Month**: the whole month. Each day shows your event names. Use the arrows
+- **Private Calendar – Month**: the whole month. Under each date every event is a colored bar with its name,
+  and today's date has a light circle. The same event always gets the same color. Use the arrows
   to change month, tap the month name to come back to this month, and tap a day to open it in the app.
-  Make the widget as large as you can so the names fit.
+  Make the widget as large as you can so more bars and longer names fit. If a day has more events than
+  fit, it shows "+2" (or similar) for the rest, and an event that lasts several days appears on each day.
 - **Private Calendar – Upcoming**: a short list of what is coming next.
 
-For privacy, widgets show dots instead of event names until you switch on **Show event titles on the widget**
-in the app's **Settings** tab. Do that to see names in the Month widget.
+Widgets show event names by default. Anyone who can see your home screen can read them, so if you
+want to hide them, switch off **Show event titles on the widget** in the app's **Settings** tab. The Month
+widget then shows plain colored stripes with no text, and the Upcoming widget shows "Event".
 
 ### Part 4: Put it on your real phone
 
@@ -103,7 +106,7 @@ in the app's **Settings** tab. Do that to see names in the Month widget.
 | Your phone isn't in the device list | Use a data cable (not charge-only), unlock the phone, tap **Allow** on the phone, and make sure USB debugging is on. |
 | "App not installed" on the phone | Your phone must be Android 11 or newer. Remove any older copy of the app and try again. |
 | "Feed rejected (HTTP 404)" in the app | The secret address changed or was reset. Copy the new one from Google Calendar. |
-| Widget shows dots or "Event" instead of names | That is on purpose, for privacy. Turn on **Show event titles on the widget** in Settings. |
+| Widget shows plain stripes or "Event" instead of names | **Show event titles on the widget** is switched off in Settings. Switch it on. |
 | Month widget cells are too small to read | Press and hold the widget, then drag its edges to make it bigger. |
 
 ---
@@ -125,7 +128,7 @@ in the app's **Settings** tab. Do that to see names in the Month widget.
 | Network | HTTPS only, system certificate authorities only, no plain http, no redirects to http |
 | Backups | Disabled; transfer rules exclude everything |
 | Screen | Screenshots and the recent-apps preview are blocked |
-| Widgets | Show dots / times only by default; event titles are opt-in |
+| Widgets | Show event titles by default; one switch in Settings hides them (stripes only) |
 | App lock | Optional fingerprint / screen lock |
 | Logging | The address and event contents are never logged |
 

@@ -38,9 +38,9 @@ class SecureStore(context: Context) {
         get() = prefs.getInt(KEY_INTERVAL, 3)
         set(v) = prefs.edit().putInt(KEY_INTERVAL, v).apply()
 
-    /** When false the widget shows times only, so event titles never appear on the home screen. */
+    /** When false the widgets hide event titles (month widget shows plain colored stripes), e.g. for privacy on a locked screen. */
     var widgetShowTitles: Boolean
-        get() = prefs.getBoolean(KEY_WIDGET_TITLES, false)
+        get() = prefs.getBoolean(KEY_WIDGET_TITLES, true)
         set(v) = prefs.edit().putBoolean(KEY_WIDGET_TITLES, v).apply()
 
     /** Months away from the current one that the month widget is showing (0 = this month). */

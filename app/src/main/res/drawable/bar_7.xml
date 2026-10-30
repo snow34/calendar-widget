@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Event bar color #7. Same color as EventColors.palette[7] in the core module. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="#C4C9D1" />
+    <corners android:radius="4dp" />
+</shape>
