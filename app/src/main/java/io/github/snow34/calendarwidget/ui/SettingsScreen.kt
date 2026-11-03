@@ -43,6 +43,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import io.github.snow34.calendarwidget.core.Appearance
 import io.github.snow34.calendarwidget.core.CalendarSource
 import io.github.snow34.calendarwidget.core.CalendarSources
 import io.github.snow34.calendarwidget.core.ColorMode
@@ -58,7 +59,9 @@ import java.util.Date
 import kotlin.math.roundToInt
 
 @Composable
-internal fun SettingsScreen(store: SecureStore, context: Context, onChanged: () -> Unit) {
+internal fun SettingsScreen(
+    store: SecureStore, context: Context, appearance: Appearance, onAppearanceChange: (Appearance) -> Unit, onChanged: () -> Unit,
+) {
     val scope = rememberCoroutineScope()
     var calendars by remember { mutableStateOf(store.loadCalendars()) }
     var tick by remember { mutableIntStateOf(0) } // bumped after every change so rows re-read their sync time
@@ -139,13 +142,14 @@ internal fun SettingsScreen(store: SecureStore, context: Context, onChanged: () 
             CalendarRow(
                 cal = cal,
                 lastSyncMillis = last,
+                palette = appearance.palette,
                 onToggle = { on ->
                     store.updateCalendar(cal.id) { it.copy(enabled = on) }
                     reload(); refreshWidgets()
                     if (on && store.loadIcs(cal.id) == null) runSync()
                 },
                 onNextColor = {
-                    store.updateCalendar(cal.id) { it.copy(colorIndex = (it.colorIndex + 1) % EventColors.palette.size) }
+                    store.updateCalendar(cal.id) { it.copy(colorIndex = (it.colorIndex + 1) % EventColors.PALETTE_SIZE) }
                     reload(); refreshWidgets()
                 },
                 onRename = { renaming = cal },
@@ -216,6 +220,14 @@ internal fun SettingsScreen(store: SecureStore, context: Context, onChanged: () 
             )
         }
         item {
+            AppearanceSection(appearance) { updated ->
+                store.appearance = updated
+                onAppearanceChange(updated)
+                onChanged()
+                refreshWidgets()
+            }
+        }
+        item {
             Text("Sync every", style = MaterialTheme.typography.titleSmall)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf(1, 3, 6, 12).forEach { h ->
@@ -264,12 +276,13 @@ internal fun SettingsScreen(store: SecureStore, context: Context, onChanged: () 
 private fun CalendarRow(
     cal: CalendarSource,
     lastSyncMillis: Long,
+    palette: List<Int>,
     onToggle: (Boolean) -> Unit,
     onNextColor: () -> Unit,
     onRename: () -> Unit,
     onRemove: () -> Unit,
 ) {
-    val tint = tintAt(cal.colorIndex)
+    val tint = tintAt(cal.colorIndex, palette)
     val synced = if (lastSyncMillis > 0) {
         "Synced " + DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(lastSyncMillis))
     } else {

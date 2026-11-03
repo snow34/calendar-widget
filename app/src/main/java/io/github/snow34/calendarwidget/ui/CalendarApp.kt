@@ -41,8 +41,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.github.snow34.calendarwidget.core.Appearance
+import io.github.snow34.calendarwidget.core.BarMetrics
 import io.github.snow34.calendarwidget.core.EventColoring
 import io.github.snow34.calendarwidget.core.GoogleCalendarLinks
 import io.github.snow34.calendarwidget.core.Occurrence
@@ -62,13 +65,15 @@ class DayFocus(val day: LocalDate)
 private enum class Tab(val label: String) { Agenda("Agenda"), Month("Month"), Settings("Settings") }
 
 @Composable
-fun CalendarApp(store: SecureStore, focus: DayFocus? = null) {
+fun CalendarApp(store: SecureStore, focus: DayFocus?, appearance: Appearance, onAppearanceChange: (Appearance) -> Unit) {
     val context = LocalContext.current
     val repo = remember { CalendarRepository(store) }
     var tab by remember { mutableStateOf(if (store.hasCalendars()) Tab.Agenda else Tab.Settings) }
     var refresh by remember { mutableIntStateOf(0) }
     // The calendar list and the coloring rule are re-read after every change made in Settings.
-    val cal = remember(refresh) { store.loadCalendars().let { CalendarContext(it, EventColoring.from(it, store.colorMode)) } }
+    val cal = remember(refresh, appearance) {
+        store.loadCalendars().let { CalendarContext(it, EventColoring.from(it, store.colorMode), appearance.palette) }
+    }
     // Adding and editing happen in Google Calendar's website; the app itself stays read-only.
     val addEvent: (LocalDate) -> Unit = { day -> openInBrowser(context, GoogleCalendarLinks.addEventUrl(day)) }
     val openEvent: (Occurrence) -> Unit = { o ->
@@ -90,8 +95,8 @@ fun CalendarApp(store: SecureStore, focus: DayFocus? = null) {
         Box(Modifier.padding(padding).fillMaxSize()) {
             when (tab) {
                 Tab.Agenda -> AgendaScreen(repo, refresh, cal, addEvent, openEvent)
-                Tab.Month -> MonthScreen(repo, refresh, focus, cal, addEvent, openEvent)
-                Tab.Settings -> SettingsScreen(store, context, onChanged = { refresh++ })
+                Tab.Month -> MonthScreen(repo, refresh, focus, cal, appearance, addEvent, openEvent)
+                Tab.Settings -> SettingsScreen(store, context, appearance, onAppearanceChange, onChanged = { refresh++ })
             }
         }
     }
@@ -156,15 +161,14 @@ private fun EventRow(o: Occurrence, cal: CalendarContext, onOpen: (Occurrence) -
     }
 }
 
-private val DAY_NUM_H = 18.dp
-private val BAR_H = 14.dp
-private val BAR_GAP = 2.dp
-private val CELL_H = 68.dp
 private val TODAY_BG = Color(0xFFA8C7FA)
 private val TODAY_TEXT = Color(0xFF062E6F)
 
 @Composable
-private fun MonthScreen(repo: CalendarRepository, refresh: Int, focus: DayFocus?, cal: CalendarContext, addEvent: (LocalDate) -> Unit, openEvent: (Occurrence) -> Unit) {
+private fun MonthScreen(
+    repo: CalendarRepository, refresh: Int, focus: DayFocus?, cal: CalendarContext, appearance: Appearance,
+    addEvent: (LocalDate) -> Unit, openEvent: (Occurrence) -> Unit,
+) {
     var month by remember { mutableStateOf(YearMonth.from(focus?.day ?: LocalDate.now())) }
     var selected by remember { mutableStateOf(focus?.day ?: LocalDate.now()) }
     LaunchedEffect(focus) { if (focus != null) { month = YearMonth.from(focus.day); selected = focus.day } }
@@ -174,6 +178,10 @@ private fun MonthScreen(repo: CalendarRepository, refresh: Int, focus: DayFocus?
     // An event covers every day it overlaps (multi-day / all-day events).
     val byDay: Map<LocalDate, List<Occurrence>> = groupByDay(items, zone)
     val dayItems = byDay[selected].orEmpty()
+    // Sizes follow the user's text size and bar height so text never gets clipped (see BarMetrics).
+    val dayNumH = BarMetrics.dayNumberHeightDp(appearance.textScale).dp
+    val barH = BarMetrics.barHeightDp(appearance.barHeight, appearance.textScale).dp
+    val cellH = BarMetrics.monthCellHeightDp(appearance.barHeight, appearance.textScale).dp
 
     // One scrolling list: the grid is taller now, so the selected day's events sit below it.
     LazyColumn(Modifier.fillMaxSize().padding(horizontal = 8.dp), contentPadding = PaddingValues(vertical = 8.dp)) {
@@ -192,9 +200,9 @@ private fun MonthScreen(repo: CalendarRepository, refresh: Int, focus: DayFocus?
                             val d = week.getOrNull(i)
                             Box(Modifier.weight(1f)) {
                                 if (d == null) {
-                                    Spacer(Modifier.height(CELL_H))
+                                    Spacer(Modifier.height(cellH))
                                 } else {
-                                    MonthDayCell(d, d == today, d == selected, byDay[d].orEmpty(), cal) { selected = d }
+                                    MonthDayCell(d, d == today, d == selected, byDay[d].orEmpty(), cal, cellH, dayNumH, barH) { selected = d }
                                 }
                             }
                         }
@@ -215,22 +223,26 @@ private fun MonthScreen(repo: CalendarRepository, refresh: Int, focus: DayFocus?
 
 /** Day number (today in a light circle) with one colored, titled bar per event, as in the Month widget. */
 @Composable
-private fun MonthDayCell(date: LocalDate, isToday: Boolean, isSelected: Boolean, events: List<Occurrence>, cal: CalendarContext, onClick: () -> Unit) {
-    val slots = ((CELL_H - DAY_NUM_H + BAR_GAP) / (BAR_H + BAR_GAP)).toInt()
+private fun MonthDayCell(
+    date: LocalDate, isToday: Boolean, isSelected: Boolean, events: List<Occurrence>, cal: CalendarContext,
+    cellH: Dp, dayNumH: Dp, barH: Dp, onClick: () -> Unit,
+) {
+    val gap = BarMetrics.GAP_DP.dp
+    val slots = BarMetrics.slots(cellH.value, dayNumH.value, barH.value)
     val overflow = events.size > slots
     // When there is not room for everything, the last slot becomes a "+N" line.
     val shown = if (overflow && slots >= 2) slots - 1 else slots.coerceAtMost(events.size)
 
     Column(
-        Modifier.fillMaxWidth().height(CELL_H).padding(1.dp)
+        Modifier.fillMaxWidth().height(cellH).padding(1.dp)
             .let { if (isSelected) it.border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(6.dp)) else it }
             .clickable(onClick = onClick)
             .padding(1.dp),
-        verticalArrangement = Arrangement.spacedBy(BAR_GAP),
+        verticalArrangement = Arrangement.spacedBy(gap),
     ) {
-        Box(Modifier.fillMaxWidth().height(DAY_NUM_H), contentAlignment = Alignment.Center) {
+        Box(Modifier.fillMaxWidth().height(dayNumH), contentAlignment = Alignment.Center) {
             if (isToday) {
-                Box(Modifier.size(DAY_NUM_H).background(TODAY_BG, CircleShape), contentAlignment = Alignment.Center) {
+                Box(Modifier.size(dayNumH).background(TODAY_BG, CircleShape), contentAlignment = Alignment.Center) {
                     Text("${date.dayOfMonth}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TODAY_TEXT)
                 }
             } else {
@@ -240,7 +252,7 @@ private fun MonthDayCell(date: LocalDate, isToday: Boolean, isSelected: Boolean,
         events.take(shown).forEach { e ->
             val tint = cal.tint(e)
             Box(
-                Modifier.fillMaxWidth().height(BAR_H).background(tint.bar, RoundedCornerShape(4.dp)).padding(horizontal = 2.dp),
+                Modifier.fillMaxWidth().height(barH).background(tint.bar, RoundedCornerShape(4.dp)).padding(horizontal = 2.dp),
                 contentAlignment = Alignment.CenterStart,
             ) {
                 Text(

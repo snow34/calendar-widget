@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
+import io.github.snow34.calendarwidget.core.Appearance
 import io.github.snow34.calendarwidget.data.SecureStore
 import java.time.LocalDate
 import java.time.format.DateTimeParseException
@@ -32,6 +33,7 @@ class MainActivity : FragmentActivity() {
     private lateinit var store: SecureStore
     private var unlocked by mutableStateOf(false)
     private var focus by mutableStateOf<DayFocus?>(null)
+    private var appearance by mutableStateOf(Appearance.DEFAULT)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,11 +41,12 @@ class MainActivity : FragmentActivity() {
         window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
         store = SecureStore(this)
         focus = dayFrom(intent)?.let(::DayFocus)
+        appearance = store.appearance
         setContent {
-            AppTheme {
+            AppTheme(appearance) {
                 Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     if (unlocked || !store.appLockEnabled) {
-                        CalendarApp(store, focus)
+                        CalendarApp(store, focus, appearance) { appearance = it }
                     } else {
                         LockedScreen(onUnlock = ::authenticate)
                     }

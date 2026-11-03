@@ -1,36 +1,33 @@
 package io.github.snow34.calendarwidget.core
 
-/** An opaque `0xRRGGBB` bar color and the text color drawn on it. */
-data class BarColor(val bar: Int, val text: Int)
-
 /**
- * Google's private iCal feed carries no per-event colors, so each event gets one from this palette,
- * chosen from its title: the same title (and every repeat of it) always gets the same color.
- *
- * Keep in sync with `app/src/main/res/drawable/bar_0.xml` .. `bar_7.xml` (same order, same colors).
+ * Event/calendar colors. Google's private iCal feed carries no per-event colors, so each event (or calendar) gets one of
+ * [PALETTE_SIZE] palette colors. The user can edit the palette (see [Appearance.palette]); all colors here are opaque
+ * `0xRRGGBB` ints, and the text color on a bar is derived with [readableTextOn].
  */
 object EventColors {
-    val palette: List<BarColor> = listOf(
-        BarColor(0xD95D77.toInt(), 0x2B0A12), // rose
-        BarColor(0xF2A65A.toInt(), 0x2E1A00), // orange
-        BarColor(0xE9CF5E.toInt(), 0x2B2400), // yellow
-        BarColor(0x7CC38F.toInt(), 0x06240F), // green
-        BarColor(0x5FB8C9.toInt(), 0x05242B), // teal
-        BarColor(0x7FA6F0.toInt(), 0x0A1F4D), // blue
-        BarColor(0xA992E8.toInt(), 0x1F0F4D), // purple
-        BarColor(0xC4C9D1.toInt(), 0x1B1F26), // grey
+    const val PALETTE_SIZE = 8
+
+    /** The built-in palette: rose, orange, yellow, green, teal, blue, purple, grey. */
+    val DEFAULT_PALETTE: List<Int> = listOf(
+        0xD95D77, 0xF2A65A, 0xE9CF5E, 0x7CC38F, 0x5FB8C9, 0x7FA6F0, 0xA992E8, 0xC4C9D1,
     )
 
+    private const val BLACK = 0x000000
+    private const val WHITE = 0xFFFFFF
+
+    /** Palette index for an event title: the same title always maps to the same index (FNV-1a over the normalised title). */
     fun indexFor(title: String): Int {
-        // FNV-1a over the normalised title: stable across runs, devices and Kotlin versions.
         var h = 0x811C9DC5.toInt()
         for (c in title.trim().lowercase()) {
             h = (h xor c.code) * 0x01000193
         }
-        return Math.floorMod(h, palette.size)
+        return Math.floorMod(h, PALETTE_SIZE)
     }
 
-    fun colorFor(title: String): BarColor = palette[indexFor(title)]
+    /** Black or white, whichever is easier to read on [barRgb] (always at least 4.5:1 contrast). */
+    fun readableTextOn(barRgb: Int): Int =
+        if (contrast(barRgb, BLACK) >= contrast(barRgb, WHITE)) BLACK else WHITE
 
     /** WCAG 2.x contrast ratio between two opaque `0xRRGGBB` colors (1.0 .. 21.0). */
     fun contrast(a: Int, b: Int): Double {
@@ -47,5 +44,17 @@ object EventColors {
         return 0.2126 * channel((rgb shr 16) and 0xFF) +
             0.7152 * channel((rgb shr 8) and 0xFF) +
             0.0722 * channel(rgb and 0xFF)
+    }
+}
+
+/** `#RRGGBB` text for opaque `0xRRGGBB` ints. */
+object ColorHex {
+    fun format(rgb: Int): String = "#%06X".format(rgb and 0xFFFFFF)
+
+    /** Accepts `RRGGBB` or `#RRGGBB` (any case, surrounding spaces ignored); anything else is null. */
+    fun parse(text: String): Int? {
+        val t = text.trim().removePrefix("#")
+        if (t.length != 6 || !t.all { it in '0'..'9' || it in 'a'..'f' || it in 'A'..'F' }) return null
+        return t.toInt(16)
     }
 }

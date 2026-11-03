@@ -15,7 +15,7 @@ class EventColoring(private val calendarColors: Map<String, Int>, private val mo
 
     fun indexFor(title: String, calendarId: String): Int {
         if (mode == ColorMode.CALENDAR) {
-            calendarColors[calendarId]?.let { return Math.floorMod(it, EventColors.palette.size) }
+            calendarColors[calendarId]?.let { return Math.floorMod(it, EventColors.PALETTE_SIZE) }
         }
         return EventColors.indexFor(title)
     }

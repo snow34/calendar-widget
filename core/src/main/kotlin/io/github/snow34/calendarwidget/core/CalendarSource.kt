@@ -8,7 +8,7 @@ data class CalendarSource(
     val id: String,
     val name: String,
     val url: String,
-    /** Index into [EventColors.palette]. */
+    /** Index into the event palette (0 until [EventColors.PALETTE_SIZE]). */
     val colorIndex: Int,
     val enabled: Boolean = true,
 )
@@ -30,8 +30,8 @@ object CalendarSources {
 
     /** First palette color no calendar uses yet; wraps around once all are taken. */
     fun nextColorIndex(existing: List<CalendarSource>): Int {
-        val used = existing.map { Math.floorMod(it.colorIndex, EventColors.palette.size) }.toSet()
-        return EventColors.palette.indices.firstOrNull { it !in used } ?: (existing.size % EventColors.palette.size)
+        val used = existing.map { Math.floorMod(it.colorIndex, EventColors.PALETTE_SIZE) }.toSet()
+        return (0 until EventColors.PALETTE_SIZE).firstOrNull { it !in used } ?: (existing.size % EventColors.PALETTE_SIZE)
     }
 
     /** A readable default name: the Google calendar id, else the feed's host, else "Calendar". Made unique. */

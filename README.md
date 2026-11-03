@@ -12,7 +12,7 @@ events, and it is built so that nothing else on your phone is shared with Google
 ## Try it on your computer and phone (Windows, no experience needed)
 
 You will need: a Windows PC, about 15 GB of free space, an internet connection, and (for the phone part)
-a USB cable and an Android phone running **Android 11 or newer**.
+a USB cable and an Android phone running **Android 12 or newer**.
 
 ### Part 0: Get your calendar's secret address (2 minutes)
 
@@ -101,6 +101,17 @@ widget then shows plain colored stripes with no text, and the Upcoming widget sh
 (give them a second). Only the background fades; the colored event bars and the text stay solid. On a bright or
 busy wallpaper a value between 30% and 60% is usually easiest to read.
 
+**Change how it looks.** In the app's **Settings** tab, scroll to **Appearance**. Everything you change there also updates the widgets:
+- **Theme:** follow the phone, always light, or always dark (widgets always follow the phone). **Use wallpaper colors**
+  gives the app the colors of your wallpaper; switch it off for plain colors.
+- **Text size:** Small, Normal, Large or Extra large (app and widgets).
+- **Font:** Sans-serif, Serif or Monospace. These are the fonts built into Android.
+- **Event bar height:** Compact, Normal, Tall or Extra tall. The bars never get smaller than their text needs.
+- **Event colors:** pick a ready-made set (Default, Pastel, Vivid, Earth), or tap any of the 8 color squares to change it with
+  sliders or a color code like `#D95D77`. Calendars and event names both pick from these 8 colors, and the text on a bar is
+  automatically black or white, whichever is easier to read. The sample bars at the top of the section show the result.
+- **Reset appearance** puts everything back the way it was at the start.
+
 ### Part 4: Put it on your real phone
 
 1. On your phone open **Settings → About phone** and tap **Build number** seven times in a row.
@@ -135,6 +146,33 @@ This is a *debug* app file. That is fine for your own phone. It is signed with a
 Android Studio, so you can only update it with another build from the same PC. To update, build a new APK and
 install it over the old one.
 
+### Part 6: Change the look in the code (optional, for tinkerers)
+
+You can change the look with the settings above, but some things are fixed in the code. To change them: in Android Studio press
+**Shift twice** (search everywhere), type the file name, open it, change the value, then press the green **▶ Run**
+(and rebuild the APK if you use one). Always change one thing at a time so you can undo it.
+
+| I want to change... | File (search for the name) | What to edit |
+|---|---|---|
+| The 8 starting colors | `EventColors.kt` | `DEFAULT_PALETTE`: eight codes like `0xD95D77` (red, green, blue in hex) |
+| The ready-made color sets | `Appearance.kt` | `AppearancePresets.all`: add or edit a set (each needs exactly 8 colors) |
+| How big "Small / Large..." text is | `Appearance.kt` | `TextScale`: the numbers 0.85, 1.0, 1.15, 1.3 |
+| How tall the bars are | `Appearance.kt` | `BarHeight` (dp numbers). Spacing and cell rules are in `BarMetrics` below it |
+| What a fresh install looks like | `Appearance.kt` | the default values in `data class Appearance(...)` |
+| The circle around today's date | `CalendarApp.kt` (app) and `MonthWidget.kt` (widget) | `TODAY_BG` (circle) and `TODAY_TEXT` (number) |
+| Month widget spacing and text sizes | `MonthWidget.kt` | the `PAD`, `HEADER_H`, `WEEKDAY_H`, `STRIPE_H`, `BAR_RADIUS` lines near the bottom; text sizes are the numbers like `15f` and `20f` inside `widgetTextStyle(...)` calls |
+| The widget background colors | `WidgetBackground.kt` | the two `Color(0xFF...)` values (light and dark) |
+| App light/dark colors, fonts | `AppTheme.kt` | `AppTheme` and `typographyFor` |
+| App and widget names | `strings.xml` | `app_name`, `widget_upcoming_label`, `widget_month_label` |
+
+**A custom font for the app** (widgets can only use Android's built-in fonts): create the folder `app/src/main/res/font`, copy a
+`.ttf` file into it (name it with lowercase letters, digits and `_` only, like `my_font.ttf`), then in `AppTheme.kt` change one line in
+`typographyFor`, for example `FontChoice.SERIF -> FontFamily(Font(R.font.my_font))` (Android Studio will offer to add the missing imports).
+After that, the **Serif** choice in Settings uses your font.
+
+**Good to know:** the app remembers the colors and look you chose. If you change `DEFAULT_PALETTE` or the defaults and don't see
+any difference, tap **Reset appearance** in Settings once.
+
 ### If something goes wrong
 
 | What you see | What to do |
@@ -145,7 +183,7 @@ install it over the old one.
 | "Could not find com.google.…" during sync | Make sure you have the latest version of this project (download the ZIP again), then click **Try Again** in the yellow bar. |
 | The virtual phone shows a calendar but no iCal option | That is the phone's built-in calendar. Open **Private Calendar** from the app list instead. |
 | Your phone isn't in the device list | Use a data cable (not charge-only), unlock the phone, tap **Allow** on the phone, and make sure USB debugging is on. |
-| "App not installed" on the phone | Your phone must be Android 11 or newer. Remove any older copy of the app and try again. |
+| "App not installed" on the phone | Your phone must be Android 12 or newer. Remove any older copy of the app and try again. |
 | "Feed rejected (HTTP 404)" in the app | The secret address changed or was reset. Copy the new one from Google Calendar. |
 | One calendar shows no events but the others do | The error shows under **Sync now** in Settings (for example "Feed rejected (HTTP 404)" means that calendar's address was reset: remove it and add the new one). The other calendars keep working. |
 | Events from another calendar are an hour or more off | The feed uses an unusual time zone name the app doesn't know, so it falls back to the phone's time zone. Tell whoever maintains this app which feed it is. |

@@ -18,8 +18,8 @@ class CalendarSourcesTest {
         assertEquals(0, CalendarSources.nextColorIndex(emptyList()))
         assertEquals(1, CalendarSources.nextColorIndex(listOf(src("a", 0))))
         assertEquals(0, CalendarSources.nextColorIndex(listOf(src("a", 3), src("b", 1))))
-        val all = EventColors.palette.indices.map { src("c$it", it) }
-        assertEquals(all.size % EventColors.palette.size, CalendarSources.nextColorIndex(all))
+        val all = (0 until EventColors.PALETTE_SIZE).map { src("c$it", it) }
+        assertEquals(all.size % EventColors.PALETTE_SIZE, CalendarSources.nextColorIndex(all))
         assertEquals(2, CalendarSources.nextColorIndex(listOf(src("a", 0), src("b", 1), src("c", 8)))) // 8 wraps to 0
     }
 

@@ -2,6 +2,7 @@ package io.github.snow34.calendarwidget.data
 
 import android.content.Context
 import android.util.AtomicFile
+import io.github.snow34.calendarwidget.core.Appearance
 import io.github.snow34.calendarwidget.core.CalendarSource
 import io.github.snow34.calendarwidget.core.CalendarSources
 import io.github.snow34.calendarwidget.core.ColorMode
@@ -78,6 +79,11 @@ class SecureStore(context: Context) {
         get() = prefs.getInt(KEY_INTERVAL, 3)
         set(v) = prefs.edit().putInt(KEY_INTERVAL, v).apply()
 
+    /** Everything about how the app and widgets look (theme, text size, font, bar height, event colors). Not secret. */
+    var appearance: Appearance
+        get() = Appearance.parse(prefs.getString(KEY_APPEARANCE, null))
+        set(v) = prefs.edit().putString(KEY_APPEARANCE, v.encode()).apply()
+
     /** What decides an event's color: its calendar or its title. */
     var colorMode: ColorMode
         get() = ColorMode.parse(prefs.getString(KEY_COLOR_MODE, null)) ?: ColorMode.CALENDAR
@@ -123,7 +129,7 @@ class SecureStore(context: Context) {
                 id = id,
                 name = o.optString("name", "Calendar").ifBlank { "Calendar" },
                 url = url,
-                colorIndex = Math.floorMod(o.optInt("color", 0), EventColors.palette.size),
+                colorIndex = Math.floorMod(o.optInt("color", 0), EventColors.PALETTE_SIZE),
                 enabled = o.optBoolean("enabled", true),
             )
         }
@@ -187,6 +193,7 @@ class SecureStore(context: Context) {
         const val KEY_LEGACY_LAST_SYNC = "last_sync"
         const val KEY_INTERVAL = "interval_hours"
         const val KEY_COLOR_MODE = "color_mode"
+        const val KEY_APPEARANCE = "appearance_v1"
         const val KEY_WIDGET_TITLES = "widget_titles"
         const val KEY_APP_LOCK = "app_lock"
         const val KEY_MONTH_OFFSET = "widget_month_offset"

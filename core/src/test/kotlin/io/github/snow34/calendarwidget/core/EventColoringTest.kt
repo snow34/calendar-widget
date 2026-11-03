@@ -36,9 +36,9 @@ class EventColoringTest {
 
     @Test fun outOfRangeCalendarColorStaysInsidePalette() {
         val coloring = EventColoring.from(listOf(CalendarSource("x", "X", "u", colorIndex = 19)), ColorMode.CALENDAR)
-        assertEquals(19 % EventColors.palette.size, coloring.indexFor(occ("t", "x")))
+        assertEquals(19 % EventColors.PALETTE_SIZE, coloring.indexFor(occ("t", "x")))
         val negative = EventColoring.from(listOf(CalendarSource("x", "X", "u", colorIndex = -1)), ColorMode.CALENDAR)
-        assertEquals(EventColors.palette.size - 1, negative.indexFor(occ("t", "x")))
+        assertEquals(EventColors.PALETTE_SIZE - 1, negative.indexFor(occ("t", "x")))
     }
 
     @Test fun parseModeNames() {

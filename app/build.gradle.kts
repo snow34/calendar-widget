@@ -10,8 +10,8 @@ android {
 
     defaultConfig {
         applicationId = "io.github.snow34.calendarwidget"
-        // 30+: BiometricPrompt supports BIOMETRIC | DEVICE_CREDENTIAL authenticators.
-        minSdk = 30
+        // 31 (Android 12): wallpaper-based app colors and rounded widget corners without workarounds.
+        minSdk = 31
         targetSdk = 35
         versionCode = 1
         versionName = "0.1.0"
