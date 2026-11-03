@@ -45,7 +45,7 @@ object RecurrenceExpander {
         val s = start.toInstant()
         val en = end.toInstant()
         val overlaps = if (s == en) s >= from && s < to else s < to && en > from
-        if (overlaps) out += Occurrence(e.uid, e.summary, e.location, e.allDay, s, en)
+        if (overlaps) out += Occurrence(e.uid, e.summary, e.location, e.allDay, s, en, e.rrule != null || e.recurrenceId != null)
     }
 
     private fun endFor(e: RawEvent, start: ZonedDateTime): ZonedDateTime =

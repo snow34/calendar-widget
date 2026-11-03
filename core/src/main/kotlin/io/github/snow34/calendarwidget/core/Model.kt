@@ -43,4 +43,6 @@ data class Occurrence(
     val allDay: Boolean,
     val start: Instant,
     val end: Instant,
+    /** Part of a repeating series (or a changed instance of one). */
+    val recurring: Boolean = false,
 )

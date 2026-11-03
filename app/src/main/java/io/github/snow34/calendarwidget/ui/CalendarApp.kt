@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
@@ -55,6 +56,7 @@ import androidx.compose.ui.unit.sp
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG
 import androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
+import io.github.snow34.calendarwidget.core.GoogleCalendarLinks
 import io.github.snow34.calendarwidget.core.Occurrence
 import io.github.snow34.calendarwidget.data.CalendarRepository
 import io.github.snow34.calendarwidget.data.IcsFetcher
@@ -84,6 +86,12 @@ fun CalendarApp(store: SecureStore, focus: DayFocus? = null) {
     val repo = remember { CalendarRepository(store) }
     var tab by remember { mutableStateOf(if (store.hasUrl()) Tab.Agenda else Tab.Settings) }
     var refresh by remember { mutableIntStateOf(0) }
+    // Adding and editing happen in Google Calendar's website; the app itself stays read-only.
+    val addEvent: (LocalDate) -> Unit = { day -> openInBrowser(context, GoogleCalendarLinks.addEventUrl(day)) }
+    val openEvent: (Occurrence) -> Unit = { o ->
+        val calendarId = store.loadUrl()?.let(GoogleCalendarLinks::calendarIdFromFeedUrl)
+        openInBrowser(context, GoogleCalendarLinks.eventUrl(o, calendarId, ZoneId.systemDefault()))
+    }
     // Opened from a day in the month widget: jump to the Month tab.
     LaunchedEffect(focus) { if (focus != null) tab = Tab.Month }
 
@@ -98,8 +106,8 @@ fun CalendarApp(store: SecureStore, focus: DayFocus? = null) {
     ) { padding ->
         Box(Modifier.padding(padding).fillMaxSize()) {
             when (tab) {
-                Tab.Agenda -> AgendaScreen(repo, refresh)
-                Tab.Month -> MonthScreen(repo, refresh, focus)
+                Tab.Agenda -> AgendaScreen(repo, refresh, addEvent, openEvent)
+                Tab.Month -> MonthScreen(repo, refresh, focus, addEvent, openEvent)
                 Tab.Settings -> SettingsScreen(store, context, onChanged = { refresh++ })
             }
         }
@@ -118,27 +126,35 @@ private fun loadOccurrences(repo: CalendarRepository, refresh: Int, from: LocalD
 }
 
 @Composable
-private fun AgendaScreen(repo: CalendarRepository, refresh: Int) {
+private fun AgendaScreen(repo: CalendarRepository, refresh: Int, addEvent: (LocalDate) -> Unit, openEvent: (Occurrence) -> Unit) {
     val today = LocalDate.now()
     val items = loadOccurrences(repo, refresh, today, today.plusDays(60))
     val zone = ZoneId.systemDefault()
     val byDay = items.groupBy { it.start.atZone(zone).toLocalDate().coerceAtLeast(today) }.toSortedMap()
     if (byDay.isEmpty()) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("No events in the next 60 days") }
+        Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+            Text("No events in the next 60 days")
+            TextButton(onClick = { addEvent(today) }) { Text("+ Add event") }
+        }
         return
     }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp)) {
+        item(key = "add-event") {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                TextButton(onClick = { addEvent(today) }) { Text("+ Add event") }
+            }
+        }
         byDay.forEach { (day, events) ->
             item(key = day.toString()) {
                 Text(Format.date(day), style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 12.dp, bottom = 4.dp))
             }
-            items(events, key = { "${it.uid}-${it.start}" }) { EventRow(it) }
+            items(events, key = { "${it.uid}-${it.start}" }) { EventRow(it, openEvent) }
         }
     }
 }
 
 @Composable
-private fun EventRow(o: Occurrence) {
+private fun EventRow(o: Occurrence, onOpen: (Occurrence) -> Unit) {
     val tint = eventTint(o.summary)
     Card(
         Modifier.fillMaxWidth().padding(vertical = 3.dp),
@@ -148,6 +164,10 @@ private fun EventRow(o: Occurrence) {
             Text(o.summary.ifBlank { "(no title)" }, style = MaterialTheme.typography.bodyLarge)
             Text(Format.timeRange(o), style = MaterialTheme.typography.bodySmall)
             o.location?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+            TextButton(
+                onClick = { onOpen(o) },
+                colors = ButtonDefaults.textButtonColors(contentColor = tint.text),
+            ) { Text("Edit in Google Calendar", fontSize = 12.sp) }
         }
     }
 }
@@ -160,7 +180,7 @@ private val TODAY_BG = Color(0xFFA8C7FA)
 private val TODAY_TEXT = Color(0xFF062E6F)
 
 @Composable
-private fun MonthScreen(repo: CalendarRepository, refresh: Int, focus: DayFocus?) {
+private fun MonthScreen(repo: CalendarRepository, refresh: Int, focus: DayFocus?, addEvent: (LocalDate) -> Unit, openEvent: (Occurrence) -> Unit) {
     var month by remember { mutableStateOf(YearMonth.from(focus?.day ?: LocalDate.now())) }
     var selected by remember { mutableStateOf(focus?.day ?: LocalDate.now()) }
     LaunchedEffect(focus) { if (focus != null) { month = YearMonth.from(focus.day); selected = focus.day } }
@@ -199,10 +219,13 @@ private fun MonthScreen(repo: CalendarRepository, refresh: Int, focus: DayFocus?
             }
         }
         item(key = "selected-title") {
-            Text(Format.date(selected), style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 12.dp, bottom = 4.dp, start = 4.dp))
+            Row(Modifier.fillMaxWidth().padding(top = 8.dp, start = 4.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text(Format.date(selected), style = MaterialTheme.typography.titleSmall)
+                TextButton(onClick = { addEvent(selected) }) { Text("+ Add event") }
+            }
         }
         if (dayItems.isEmpty()) item(key = "no-events") { Text("No events", style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 4.dp)) }
-        items(dayItems, key = { "${it.uid}-${it.start}" }) { EventRow(it) }
+        items(dayItems, key = { "${it.uid}-${it.start}" }) { EventRow(it, openEvent) }
     }
 }
 
@@ -357,6 +380,13 @@ private fun SettingsScreen(store: SecureStore, context: android.content.Context,
                 val ok = BiometricManager.from(context).canAuthenticate(BIOMETRIC_STRONG or DEVICE_CREDENTIAL) == BiometricManager.BIOMETRIC_SUCCESS
                 if (want && !ok) status = "Set up a screen lock on the device first" else { lock = want; store.appLockEnabled = want }
             }
+        }
+        item {
+            Text(
+                "Adding and editing events opens Google Calendar in your web browser; this app only shows your calendar. " +
+                    "Google refreshes the private calendar address slowly, so a change can take a few hours to appear here.",
+                style = MaterialTheme.typography.bodySmall,
+            )
         }
     }
 }

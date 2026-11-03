@@ -6,7 +6,7 @@ For the next AI agent. Read this first, check the work with the commands below, 
 > anything learned) and commit it together with the code change. See "How to keep this file current".
 
 - Repo: `snow34/calendar-widget`. Work branch: **`claude/lucid-planck-vy2q5k`** (push only here; do **not** open a PR unless the user asks).
-- Last updated: 2026-11-03, after commit `7bce348` ("App: follow the system light/dark setting").
+- Last updated: 2026-11-03, with the "Add event / Edit in Google Calendar" buttons change (newest Changelog row; its hash is the commit that follows `063efe9`).
 
 ---
 
@@ -18,7 +18,8 @@ nothing from the phone beyond the calendar fetch itself.
 - Data source: Google Calendar's **"Secret address in iCal format"** URL, pasted once by the user. No Google sign-in,
   no OAuth, no Google SDKs, no Play Services (user runs a de-Googled Android OS).
 - Features: Agenda tab, Month tab (colored titled bars per day), Settings tab; **Month widget** (grid with colored
-  event bars) and **Upcoming widget** (short list); optional biometric app lock; widget background transparency slider.
+  event bars) and **Upcoming widget** (short list); optional biometric app lock; widget background transparency slider;
+  **+ Add event / Edit in Google Calendar** buttons that open Google Calendar's website in the browser (app stays read-only).
 - Honest limits (also in README): Google still sees the feed URL being fetched; anyone with the secret URL can read
   the calendar; the OS itself is out of the app's control.
 
@@ -43,6 +44,7 @@ Key files:
 | Area | Files |
 |---|---|
 | Parsing / recurrence | `core/.../IcsParser.kt`, `RecurrenceExpander.kt`, `Model.kt` (RRULE, EXDATE, RECURRENCE-ID, TZID/DST, all-day) |
+| Browser links to Google Calendar | `core/.../GoogleCalendarLinks.kt` (`addEventUrl`, `dayUrl`, `calendarIdFromFeedUrl`, `eventUrl`), `app/.../ui/ExternalLinks.kt` (`openInBrowser`) |
 | Per-day placement | `core/.../DayGrouping.kt` (`groupByDay`: multi-day events on every day, sorted all-day first, then start, then title) |
 | Colors | `core/.../EventColors.kt` (8-color palette, FNV-1a hash of normalised title, WCAG contrast helper). Palette is mirrored in `app/src/main/res/drawable/bar_0..7.xml` (**keep in sync, same order**) |
 | Opacity math | `core/.../WidgetOpacity.kt` |
@@ -67,16 +69,20 @@ Key files:
 - App theme follows system light/dark; dynamic (wallpaper) colors on Android 12+, Material palettes below. Chosen by the agent without asking; the user may prefer plain palettes.
 - Package name `io.github.snow34.calendarwidget` was **guessed** from the repo owner and not confirmed by the user.
 - Debug APK only; no release signing configured.
+- **Adding/editing events (user decision, 2026-11-03):** the user asked how hard in-app editing via Google Calendar API would be. Agent explained: needs OAuth + Google Cloud project, browser-based sign-in (no Play Services), AppAuth, migrating *reading* to the Calendar API too (Google's private iCal feed refreshes only every few hours), recurring-event edit semantics, offline queue, and cannot be tested in the sandbox. User chose the **cheap browser-button route for now**: `+ Add event` opens `https://calendar.google.com/calendar/render?action=TEMPLATE&dates=...` (prefilled 09:00-10:00 on the chosen day; agent's default, not asked) and `Edit in Google Calendar` opens the event page. App remains read-only with no Google sign-in.
+- If the user later wants full in-app editing, they ticked **all** of: add single events, edit/delete, repeating events, several Google calendars. That is the large OAuth/API project described above; start by asking again, it is a design fork.
 
 ## 5. Current status
 
 | Item | State |
 |---|---|
 | `core` unit tests (24) | **Pass** (DayGrouping 6, EventColors 5, Expander 10, WidgetOpacity 3) |
+| `core` unit tests (33) | **Pass** (DayGrouping 6, EventColors 5, Expander 10, GoogleCalendarLinks 9, WidgetOpacity 3). Supersedes the 24 above. |
 | `:app` builds and runs | **Yes** on the user's emulator (user compiled it; no errors reported after the fixes below) |
 | Month/Upcoming widgets, colors, bars, today circle | Seen working by the user on the emulator |
 | Widget transparency slider | **Works** for both widgets (user confirmed after the stale-session fix) |
-| App follows system dark mode | **Pushed, NOT yet confirmed** by the user (last change, `7bce348`) |
+| App follows system dark mode | **Pushed, NOT yet confirmed** by the user (`7bce348`) |
+| Add event / Edit in Google Calendar buttons | **Pushed, unverified on a device** (app code uncompiled in sandbox; link builder is unit tested). The event deep link format (`eid` = base64url of `<eventId> <calendarId>`) is unofficial; the fallback is the day view. |
 | Real-phone install | User installed on a phone (noted dark-mode mismatch there); no other phone issues reported |
 | `:app:lint`, `:app:verifyNoGoogleServices`, `:app:dependencies` | **Never run** (no Android SDK in the agent sandbox) |
 | Instrumented/UI tests | None exist |
@@ -138,13 +144,16 @@ Use a **JDK 17-21** for Gradle (Gradle 8.14.3 does not support Java 25; Android 
 4. Drawable colors `bar_0..7.xml` must match `EventColors.palette` (checked by hand/script only; there is no automated test across the module boundary).
 5. `MonthWidget` cell/bar counts are derived from `LocalSize` (`SizeMode.Exact`); on small widgets bars degrade to dots.
 6. `Widgets.revision` is in-process state; fine because widget sessions live in the app process.
-7. Settings `widgetShowTitles` default is **true** (flipped from false at the user's request); existing README text reflects this.
+7. **Google private feed lag:** changes made in Google Calendar can take hours to appear in the feed, so adding/editing via the browser is not reflected immediately. This is stated in Settings and README. It is also why true in-app editing would require reading via the Calendar API.
+8. `GoogleCalendarLinks.eventUrl` only builds a direct link when the iCal UID ends with `@google.com` and the calendar id could be read from the secret URL (`calendar/ical/<id>/private-<token>/basic.ics`); otherwise it opens the day view. `eid` uses the URL-safe base64 alphabet without padding (a `+` would be mangled in a query string). Recurring instances use `<eventId>_<start in UTC>` (or `_<date>` for all-day); a *moved* instance of a series uses its new start, which Google may not recognise (falls to the series/day).
+9. `Occurrence.recurring` (new field, default false) is set by `RecurrenceExpander`.
+10. Settings `widgetShowTitles` default is **true** (flipped from false at the user's request); existing README text reflects this.
 
 ## 8. Open items / suggested next steps
 
 1. **Ask the user to confirm** the dark-mode fix on both emulator and real phone (and whether they prefer wallpaper-based or plain Material colors).
 2. Run `:app:lint` and `:app:verifyNoGoogleServices` on a machine with the SDK; fix findings. The privacy claim "no Google code" is currently only enforced by that unrun task.
-3. Add a README note that the app follows system dark mode (not yet documented).
+3. Add a README note that the app follows system dark mode (not yet documented). Confirm the browser buttons work on the user's phone: does the default browser open, does the event link land on the event or the day page, what does an *unsigned-in* browser do?
 4. Confirm or change the package name `io.github.snow34.calendarwidget` before any wider distribution (changing it later means a new install).
 5. Release signing / signed APK (user chose debug for now). A release build also needs R8 verified (`isMinifyEnabled = true`; no keep rules were needed so far but unverified).
 6. Tests worth adding: `IcsFetcher` with MockWebServer (304, 429, oversize, non-ICS body, http URL rejected); a Robolectric/instrumented test for `Vault`/`SecureStore`; an automated palette-vs-drawable sync check.
@@ -168,6 +177,8 @@ Use a **JDK 17-21** for Gradle (Gradle 8.14.3 does not support Java 25; Android 
 
 | Commit | Date | Change |
 |---|---|---|
+| (this commit) | 2026-11-03 | `+ Add event` (Agenda, Month) and `Edit in Google Calendar` (event cards) open Google Calendar in the browser; `GoogleCalendarLinks` in core (9 tests); `Occurrence.recurring`; Settings + README explain the feed delay. |
+| `063efe9` | 2026-11-03 | Added `handoff.md`. |
 | `7bce348` | 2026-10-30 | App follows system light/dark (`AppTheme`, DayNight window theme). Unconfirmed by user. |
 | `3763445` | 2026-10-30 | Widgets re-read settings/events on every refresh (fixes Month widget ignoring opacity: stale Glance session). |
 | `a839990` | 2026-10-30 | Widget background transparency slider (0-100%, 5% steps, shared by both widgets; only background fades). |
@@ -179,7 +190,6 @@ Use a **JDK 17-21** for Gradle (Gradle 8.14.3 does not support Java 25; Android 
 | `1ec541b` | 2026-10-30 | Beginner-friendly Windows README. |
 | `71a4eb7` | 2026-10-30 | Android app module: encrypted storage, hardened fetch, Compose UI, Glance widget, app lock, `verifyNoGoogleServices`. |
 | `3f02fe2` | 2026-10-30 | Gradle skeleton + pure-Kotlin ICS parser with recurrence expansion (10 tests). |
-| (this commit) | 2026-11-03 | Added `handoff.md`. |
 
 ## 11. How to keep this file current
 

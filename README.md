@@ -65,6 +65,12 @@ A "virtual phone" (called an *emulator*) is a fake phone that runs in a window o
    event's name, because Google's private calendar address doesn't include the colors you set in Google Calendar).
    In the **Month** tab each day shows colored bars with the event names, today's date has a light circle,
    and tapping a day lists its events below the grid. If a day has more events than fit, it shows "+2" (or similar).
+9. **Adding and changing events.** This app only *shows* your calendar. Tap **+ Add event** (in the Agenda tab, or in
+   the Month tab for the day you selected) to open Google Calendar's own "new event" page in your web browser, with
+   that day filled in. To change or delete an event, tap **Edit in Google Calendar** on it. Sign in to Google in
+   the browser if it asks. Google updates the private calendar address slowly, so a new or changed event can take
+   **a few hours** to show up in this app. If an event can't be opened directly (for example one imported from another
+   calendar), you land on that day's page in Google Calendar instead.
 
 **Widgets.** On the virtual phone's home screen, press and hold on an empty spot, tap **Widgets**,
 find **Private Calendar**, and drag one onto the screen. There are two:
@@ -130,6 +136,8 @@ install it over the old one.
 | Your phone isn't in the device list | Use a data cable (not charge-only), unlock the phone, tap **Allow** on the phone, and make sure USB debugging is on. |
 | "App not installed" on the phone | Your phone must be Android 11 or newer. Remove any older copy of the app and try again. |
 | "Feed rejected (HTTP 404)" in the app | The secret address changed or was reset. Copy the new one from Google Calendar. |
+| "Edit in Google Calendar" opens a day page, not the event | Normal for events Google can't link directly (imported ones, for example). Find the event on that day and edit it there. |
+| A new event doesn't show up in the app | Google refreshes the private calendar address slowly (up to a few hours). Press **Sync now** in Settings later. |
 | Widget shows plain stripes or "Event" instead of names | **Show event titles on the widget** is switched off in Settings. Switch it on. |
 | Month widget cells are too small to read | Press and hold the widget, then drag its edges to make it bigger. |
 
@@ -150,6 +158,7 @@ install it over the old one.
 | Permissions requested by the app | `INTERNET` only (the scheduling library adds a few of its own) |
 | Google/Firebase/Play Services code | None; `gradlew.bat :app:verifyNoGoogleServices` fails the build if any appears |
 | Network | HTTPS only, system certificate authorities only, no plain http, no redirects to http |
+| Adding / editing events | Done in your web browser on Google's own site. The app has no Google sign-in and no write access to your calendar |
 | Backups | Disabled; transfer rules exclude everything |
 | Screen | Screenshots and the recent-apps preview are blocked |
 | Widgets | Show event titles by default; one switch in Settings hides them (stripes only) |
