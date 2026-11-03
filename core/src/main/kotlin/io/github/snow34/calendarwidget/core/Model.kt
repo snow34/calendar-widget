@@ -45,4 +45,6 @@ data class Occurrence(
     val end: Instant,
     /** Part of a repeating series (or a changed instance of one). */
     val recurring: Boolean = false,
+    /** Which calendar of the user's list this came from (see [CalendarSource.id]); empty if unknown. */
+    val calendarId: String = "",
 )

@@ -116,8 +116,15 @@ class IcsParser(
         null
     }
 
-    private fun zoneOf(tzid: String?): ZoneId =
-        if (tzid == null) defaultZone else try { ZoneId.of(tzid) } catch (_: DateTimeException) { defaultZone }
+    /** IANA names directly; Outlook/Exchange-style Windows names via [WindowsTimeZones]; otherwise the phone's zone. */
+    private fun zoneOf(tzid: String?): ZoneId {
+        if (tzid == null) return defaultZone
+        return try {
+            ZoneId.of(tzid)
+        } catch (_: DateTimeException) {
+            WindowsTimeZones.toIana(tzid)?.let { iana -> try { ZoneId.of(iana) } catch (_: DateTimeException) { null } } ?: defaultZone
+        }
+    }
 
     private fun parseDuration(v: String): Duration? = try {
         // Calendar durations are day/week/time based; Duration.parse only takes P[n]DT...

@@ -11,9 +11,10 @@ import androidx.work.WorkerParameters
 import java.util.concurrent.TimeUnit
 
 class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
-    override suspend fun doWork(): Result = when (val o = Syncer.run(applicationContext)) {
-        SyncOutcome.Updated, SyncOutcome.NotModified, SyncOutcome.NoUrl -> Result.success()
-        is SyncOutcome.Failed -> if (o.retryable && runAttemptCount < MAX_ATTEMPTS) Result.retry() else Result.failure()
+    override suspend fun doWork(): Result {
+        val result = Syncer.run(applicationContext)
+        // Retry (with back-off) only for temporary problems; calendars that already synced just refetch cheaply (ETag).
+        return if (result.failures.any { it.retryable } && runAttemptCount < MAX_ATTEMPTS) Result.retry() else Result.success()
     }
 
     companion object {

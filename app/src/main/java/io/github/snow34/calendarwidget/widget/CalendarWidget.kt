@@ -47,10 +47,11 @@ class CalendarWidget : GlanceAppWidget() {
     private fun load(context: Context): UpcomingData {
         val store = SecureStore(context)
         val now = Instant.now()
-        val items = CalendarRepository(store).occurrences(now.minus(1, ChronoUnit.HOURS), now.plus(14, ChronoUnit.DAYS))
+        val sources = store.loadCalendars()
+        val items = CalendarRepository(store).occurrences(now.minus(1, ChronoUnit.HOURS), now.plus(14, ChronoUnit.DAYS), sources)
             .filter { it.end.isAfter(now) }
             .take(MAX_ITEMS)
-        return UpcomingData(store.hasUrl(), store.widgetShowTitles, store.widgetOpacityPercent, items)
+        return UpcomingData(sources.any { it.enabled }, store.widgetShowTitles, store.widgetOpacityPercent, items)
     }
 
     @Composable
@@ -62,7 +63,7 @@ class CalendarWidget : GlanceAppWidget() {
                 .clickable(actionStartActivity(Widgets.openAppIntent())),
         ) {
             when {
-                !configured -> Line("Tap to add your calendar feed", bold = false)
+                !configured -> Line("Tap to add or turn on a calendar", bold = false)
                 items.isEmpty() -> Line("Nothing coming up", bold = false)
                 else -> items.forEach { o ->
                     val title = if (showTitles) o.summary.ifBlank { "(no title)" } else "Event"

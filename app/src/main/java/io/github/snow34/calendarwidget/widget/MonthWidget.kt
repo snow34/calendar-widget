@@ -44,8 +44,8 @@ import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import io.github.snow34.calendarwidget.R
-import io.github.snow34.calendarwidget.core.EventColors
-import io.github.snow34.calendarwidget.ui.eventTint
+import io.github.snow34.calendarwidget.core.EventColoring
+import io.github.snow34.calendarwidget.ui.tintAt
 import io.github.snow34.calendarwidget.core.Occurrence
 import io.github.snow34.calendarwidget.core.groupByDay
 import io.github.snow34.calendarwidget.data.CalendarRepository
@@ -67,28 +67,36 @@ class MonthWidget : GlanceAppWidget() {
             // Re-read settings and events whenever Widgets.revision changes (see Widgets.revision for why).
             val revision by Widgets.revision.collectAsState()
             val data = remember(revision) { load(context) }
-            GlanceTheme { Content(data.configured, data.showTitles, data.opacity, data.month, data.byDay) }
+            GlanceTheme { Content(data.configured, data.showTitles, data.opacity, data.month, data.byDay, data.coloring) }
         }
     }
 
     private class MonthData(
         val configured: Boolean, val showTitles: Boolean, val opacity: Int,
-        val month: YearMonth, val byDay: Map<LocalDate, List<Occurrence>>,
+        val month: YearMonth, val byDay: Map<LocalDate, List<Occurrence>>, val coloring: EventColoring,
     )
 
     private fun load(context: Context): MonthData {
         val store = SecureStore(context)
         val month = YearMonth.now().plusMonths(store.widgetMonthOffset.toLong())
         val zone = ZoneId.systemDefault()
+        val sources = store.loadCalendars()
         val occ = CalendarRepository(store).occurrences(
             month.atDay(1).atStartOfDay(zone).toInstant(),
             month.plusMonths(1).atDay(1).atStartOfDay(zone).toInstant(),
+            sources,
         )
-        return MonthData(store.hasUrl(), store.widgetShowTitles, store.widgetOpacityPercent, month, groupByDay(occ, zone))
+        return MonthData(
+            sources.any { it.enabled }, store.widgetShowTitles, store.widgetOpacityPercent, month, groupByDay(occ, zone),
+            EventColoring.from(sources, store.colorMode),
+        )
     }
 
     @Composable
-    private fun Content(configured: Boolean, showTitles: Boolean, opacity: Int, month: YearMonth, byDay: Map<LocalDate, List<Occurrence>>) {
+    private fun Content(
+        configured: Boolean, showTitles: Boolean, opacity: Int, month: YearMonth,
+        byDay: Map<LocalDate, List<Occurrence>>, coloring: EventColoring,
+    ) {
         val size = LocalSize.current
         val locale = Locale.getDefault()
         val today = LocalDate.now()
@@ -123,7 +131,7 @@ class MonthWidget : GlanceAppWidget() {
                     GlanceModifier.fillMaxSize().clickable(actionStartActivity(openApp(null))),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text("Tap to add your calendar feed", style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = 13.sp))
+                    Text("Tap to add or turn on a calendar", style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = 13.sp))
                 }
                 return@Column
             }
@@ -151,7 +159,7 @@ class MonthWidget : GlanceAppWidget() {
                             Box(GlanceModifier.width(cellW).height(cellH)) {}
                         } else {
                             val date = month.atDay(dayNum)
-                            DayCell(date, date == today, byDay[date].orEmpty(), showTitles, cellW, cellH)
+                            DayCell(date, date == today, byDay[date].orEmpty(), showTitles, coloring, cellW, cellH)
                         }
                     }
                 }
@@ -162,7 +170,7 @@ class MonthWidget : GlanceAppWidget() {
     @Composable
     private fun DayCell(
         date: LocalDate, isToday: Boolean, events: List<Occurrence>,
-        showTitles: Boolean, w: Dp, h: Dp,
+        showTitles: Boolean, coloring: EventColoring, w: Dp, h: Dp,
     ) {
         val barH = if (showTitles) BAR_H else STRIPE_H
         val slots = ((h.value - DAY_NUM_H.value + BAR_GAP.value) / (barH.value + BAR_GAP.value)).toInt()
@@ -200,16 +208,17 @@ class MonthWidget : GlanceAppWidget() {
 
             events.take(shown).forEach { e ->
                 val title = e.summary.ifBlank { "(no title)" }
+                val colorIndex = coloring.indexFor(e)
                 Box(
                     GlanceModifier.fillMaxWidth().height(barH)
-                        .background(ImageProvider(BAR_RES[EventColors.indexFor(e.summary)]), contentScale = ContentScale.FillBounds),
+                        .background(ImageProvider(BAR_RES[Math.floorMod(colorIndex, BAR_RES.size)]), contentScale = ContentScale.FillBounds),
                     contentAlignment = Alignment.CenterStart,
                 ) {
                     if (showTitles) {
                         Text(
                             title, maxLines = 1,
                             modifier = GlanceModifier.padding(horizontal = 2.dp),
-                            style = TextStyle(color = ColorProvider(eventTint(e.summary).text), fontSize = 9.sp),
+                            style = TextStyle(color = ColorProvider(tintAt(colorIndex).text), fontSize = 9.sp),
                         )
                     }
                 }

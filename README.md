@@ -27,6 +27,17 @@ The app reads your calendar through a private web address, so you don't have to 
 **Treat this address like a password.** Anyone who has it can read your calendar. If it leaks, press
 **Reset** next to it in the same place and the old address stops working.
 
+**More than one calendar?** Repeat Part 0 for each calendar (every Google calendar has its own secret address). Google
+usually only shows that address for calendars you own or manage; a calendar someone else shares with you normally has
+none unless its owner made it public. Any other iCal or `webcal://` address works as well, for example
+school holidays or a sports fixtures feed. In the app's **Settings** tab you can then:
+- add as many as 20 calendars, give each a name, and rename or remove them later (removing only deletes them from the phone);
+- switch a calendar off and on without removing it. Calendars that are switched off are hidden in the app **and** in the widgets;
+- tap a calendar's **color dot** to change its color;
+- choose **Color events by: Calendar** (every event takes its calendar's color, like Google Calendar) or **Event name**
+  (the color is picked from the event's name). If you used an earlier version of the app, your first calendar is kept
+  and the colors stay *by event name* until you change this.
+
 ### Part 1: Install the tools (about 20 minutes, one time only)
 
 1. Download **Android Studio** from <https://developer.android.com/studio> and install it. Accept the
@@ -58,7 +69,7 @@ A "virtual phone" (called an *emulator*) is a fake phone that runs in a window o
 6. Wait for the phone window to start (a few minutes the first time). The app opens by itself.
    **Important:** the virtual phone already has its own built-in "Calendar" app and widget. That is *not* this app.
    Ours is called **Private Calendar**. Swipe up on the home screen to find it in the app list.
-7. In the app, open **Settings**, paste your secret address (Part 0), and press **Save & sync**.
+7. In the app, open **Settings**, paste your secret address (Part 0) under **Add a calendar**, and press **Add & sync**.
    (Copy the address on your PC, then in the virtual phone click in the box and press **Ctrl+V**.)
 8. Open the **Agenda** and **Month** tabs to see your events. Every event gets a color, and the same
    event always gets the same color in the app and in the widgets (the colors are picked automatically from the
@@ -99,7 +110,7 @@ busy wallpaper a value between 30% and 60% is usually easiest to read.
    "Allow USB debugging?" question.
 4. In Android Studio, at the top, open the device list and choose your phone's name.
 5. Click the green **▶ Run** button. The app is installed and starts on your phone.
-6. Open the app's **Settings** tab, paste your secret address and press **Save & sync**.
+6. Open the app's **Settings** tab, paste your secret address under **Add a calendar** and press **Add & sync**.
 7. To add a widget: press and hold on an empty spot of your home screen, tap **Widgets**,
    find **Private Calendar – Month** (or **– Upcoming**), and drag it onto the screen.
 
@@ -118,7 +129,7 @@ without a cable.
 6. On the phone, open the file (for example from the **Downloads** or **Files** app) and tap **Install**.
    If the phone says installing from this source is blocked, tap **Settings**, switch on **Allow from this
    source** for the app you opened the file with, go back and tap **Install** again.
-7. Open **Private Calendar** from the app list, paste your secret address in **Settings**, and press **Save & sync**.
+7. Open **Private Calendar** from the app list, paste your secret address in **Settings** under **Add a calendar**, and press **Add & sync**.
 
 This is a *debug* app file. That is fine for your own phone. It is signed with a throwaway key made by
 Android Studio, so you can only update it with another build from the same PC. To update, build a new APK and
@@ -136,6 +147,8 @@ install it over the old one.
 | Your phone isn't in the device list | Use a data cable (not charge-only), unlock the phone, tap **Allow** on the phone, and make sure USB debugging is on. |
 | "App not installed" on the phone | Your phone must be Android 11 or newer. Remove any older copy of the app and try again. |
 | "Feed rejected (HTTP 404)" in the app | The secret address changed or was reset. Copy the new one from Google Calendar. |
+| One calendar shows no events but the others do | The error shows under **Sync now** in Settings (for example "Feed rejected (HTTP 404)" means that calendar's address was reset: remove it and add the new one). The other calendars keep working. |
+| Events from another calendar are an hour or more off | The feed uses an unusual time zone name the app doesn't know, so it falls back to the phone's time zone. Tell whoever maintains this app which feed it is. |
 | "Edit in Google Calendar" opens a day page, not the event | Normal for events Google can't link directly (imported ones, for example). Find the event on that day and edit it there. |
 | A new event doesn't show up in the app | Google refreshes the private calendar address slowly (up to a few hours). Press **Sync now** in Settings later. |
 | Widget shows plain stripes or "Event" instead of names | **Show event titles on the widget** is switched off in Settings. Switch it on. |
@@ -145,7 +158,7 @@ install it over the old one.
 
 ## How it works
 
-- You paste your calendar's **secret iCal address** once. No Google sign-in, OAuth or Google code is involved.
+- You paste each calendar's **secret iCal address** once. No Google sign-in, OAuth or Google code is involved.
 - A background job downloads the calendar file over HTTPS and stores it encrypted (AES-256-GCM, with a key
   that can't be taken out of the phone's Keystore). The address is stored the same way.
 - The app (agenda and month views) and the two widgets (month grid, upcoming list) read the encrypted copy. Repeating events, exceptions and

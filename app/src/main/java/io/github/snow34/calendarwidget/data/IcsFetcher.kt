@@ -1,5 +1,6 @@
 package io.github.snow34.calendarwidget.data
 
+import io.github.snow34.calendarwidget.core.CalendarSources
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
@@ -57,6 +58,6 @@ class IcsFetcher(
         const val MAX_BYTES = 10L * 1024 * 1024
 
         fun parseHttpsUrl(url: String): HttpUrl? =
-            url.trim().toHttpUrlOrNull()?.takeIf { it.isHttps }
+            CalendarSources.normalizeFeedUrl(url).toHttpUrlOrNull()?.takeIf { it.isHttps }
     }
 }

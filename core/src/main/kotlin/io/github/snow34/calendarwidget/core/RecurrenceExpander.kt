@@ -13,26 +13,26 @@ import java.time.temporal.TemporalAdjusters
 object RecurrenceExpander {
 
     /** Occurrences overlapping `[from, to)`, sorted by start. */
-    fun expand(events: List<RawEvent>, from: Instant, to: Instant): List<Occurrence> {
+    fun expand(events: List<RawEvent>, from: Instant, to: Instant, calendarId: String = ""): List<Occurrence> {
         val overridesByUid = events.filter { it.recurrenceId != null }.groupBy { it.uid }
         val out = ArrayList<Occurrence>()
 
         for (e in events) {
             if (e.recurrenceId != null) {
-                if (!e.cancelled) addIfInWindow(out, e, e.start, e.end, from, to)
+                if (!e.cancelled) addIfInWindow(out, e, e.start, e.end, from, to, calendarId)
                 continue
             }
             if (e.cancelled) continue
             val overridden = overridesByUid[e.uid]?.mapNotNull { it.recurrenceId }?.toSet().orEmpty()
             val rule = e.rrule
             if (rule == null) {
-                addIfInWindow(out, e, e.start, e.end, from, to)
+                addIfInWindow(out, e, e.start, e.end, from, to, calendarId)
                 continue
             }
             for (start in occurrenceStarts(e, rule, to)) {
                 val instant = start.toInstant()
                 if (instant in e.exDates || instant in overridden) continue
-                addIfInWindow(out, e, start, endFor(e, start), from, to)
+                addIfInWindow(out, e, start, endFor(e, start), from, to, calendarId)
             }
         }
         return out.sortedWith(compareBy({ it.start }, { it.summary }))
@@ -40,12 +40,12 @@ object RecurrenceExpander {
 
     private fun addIfInWindow(
         out: MutableList<Occurrence>, e: RawEvent,
-        start: ZonedDateTime, end: ZonedDateTime, from: Instant, to: Instant,
+        start: ZonedDateTime, end: ZonedDateTime, from: Instant, to: Instant, calendarId: String,
     ) {
         val s = start.toInstant()
         val en = end.toInstant()
         val overlaps = if (s == en) s >= from && s < to else s < to && en > from
-        if (overlaps) out += Occurrence(e.uid, e.summary, e.location, e.allDay, s, en, e.rrule != null || e.recurrenceId != null)
+        if (overlaps) out += Occurrence(e.uid, e.summary, e.location, e.allDay, s, en, e.rrule != null || e.recurrenceId != null, calendarId)
     }
 
     private fun endFor(e: RawEvent, start: ZonedDateTime): ZonedDateTime =
