@@ -1,0 +1,10 @@
+build/
+.gradle/
+.kotlin/
+local.properties
+*.apk
+*.aab
+*.keystore
+*.jks
+.idea/
+settings-sandbox.gradle.kts
