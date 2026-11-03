@@ -36,6 +36,7 @@ import io.github.snow34.calendarwidget.core.AppearancePresets
 import io.github.snow34.calendarwidget.core.BarHeight
 import io.github.snow34.calendarwidget.core.BarMetrics
 import io.github.snow34.calendarwidget.core.ColorHex
+import io.github.snow34.calendarwidget.core.ColorMode
 import io.github.snow34.calendarwidget.core.EventColors
 import io.github.snow34.calendarwidget.core.FontChoice
 import io.github.snow34.calendarwidget.core.TextScale
@@ -44,11 +45,15 @@ import kotlin.math.roundToInt
 
 /** Settings block for theme, text size, font, bar height and the 8 event colors. [onChange] receives the new settings. */
 @Composable
-internal fun AppearanceSection(appearance: Appearance, onChange: (Appearance) -> Unit) {
+internal fun AppearanceSection(
+    appearance: Appearance,
+    colorMode: ColorMode,
+    onColorModeChange: (ColorMode) -> Unit,
+    onChange: (Appearance) -> Unit,
+) {
     var editing by remember { mutableStateOf<Int?>(null) }
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Appearance", style = MaterialTheme.typography.titleMedium)
         Preview(appearance)
 
         Text("Theme", style = MaterialTheme.typography.titleSmall)
@@ -78,6 +83,14 @@ internal fun AppearanceSection(appearance: Appearance, onChange: (Appearance) ->
             listOf(BarHeight.COMPACT to "Compact", BarHeight.NORMAL to "Normal", BarHeight.TALL to "Tall", BarHeight.XTALL to "Extra tall"),
             appearance.barHeight,
         ) { onChange(appearance.copy(barHeight = it)) }
+
+        Text("Color events by", style = MaterialTheme.typography.titleSmall)
+        ChoiceRow(listOf(ColorMode.CALENDAR to "Calendar", ColorMode.TITLE to "Event name"), colorMode, onColorModeChange)
+        Text(
+            "Calendar: every event gets its calendar's color. Event name: the color is picked from the event's name, " +
+                "so the same event always looks the same.",
+            style = MaterialTheme.typography.bodySmall,
+        )
 
         Text("Event colors", style = MaterialTheme.typography.titleSmall)
         val matching = AppearancePresets.matching(appearance.palette)

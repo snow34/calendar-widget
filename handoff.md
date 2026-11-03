@@ -6,7 +6,7 @@ For the next AI agent. Read this first, check the work with the commands below, 
 > anything learned) and commit it together with the code change. See "How to keep this file current".
 
 - Repo: `snow34/calendar-widget`. Work branch: **`claude/lucid-planck-vy2q5k`** (push only here; do **not** open a PR unless the user asks).
-- Last updated: 2026-11-03, with the **Appearance settings** change (newest Changelog row; its hash is the commit that follows `f761a15`).
+- Last updated: 2026-11-03, with the **Settings as dropdown sections** change (newest Changelog row; its hash is the commit that follows `46d2965`).
 
 ---
 
@@ -51,11 +51,12 @@ Key files:
 | Per-day placement | `core/.../DayGrouping.kt` (`groupByDay`: multi-day events on every day, sorted all-day first, then start, then title) |
 | Colors | `core/.../EventColors.kt` (`DEFAULT_PALETTE` of 8 `0xRRGGBB` ints, `indexFor(title)` FNV-1a hash, `readableTextOn(rgb)` = black/white by WCAG contrast, `ColorHex`). The live palette is `Appearance.palette` (user-editable); there are **no palette drawables any more** |
 | Appearance | `core/.../Appearance.kt`: `Appearance` (theme mode, wallpaper colors, `TextScale`, `FontChoice`, `BarHeight`, palette; `encode()` / tolerant `parse()` stored as one pref `appearance_v1`), `AppearancePresets` (Default/Pastel/Vivid/Earth), `BarMetrics` (bar/cell/day-number sizes shared by app and widget so text never clips). `app/.../ui/AppearanceSection.kt` (Settings UI: chips, 8 swatches, color dialog with RGB sliders + hex, preview, reset), `AppTheme.kt` (theme, wallpaper colors, font family, text scale via `LocalDensity`), `widget/WidgetText.kt` (`widgetTextStyle`, Glance font mapping) |
+| Settings summaries | `core/.../SettingsSummary.kt` (one-line text for a collapsed section: calendars, appearance, widgets, sync, security) |
 | Opacity math | `core/.../WidgetOpacity.kt` |
 | Storage / security | `app/.../data/Vault.kt` (AES-256-GCM, non-exportable Keystore key), `SecureStore.kt` (encrypted `calendars.json.enc` = list incl. secret URLs, one encrypted `events-<id>.ics.enc` per calendar in `AtomicFile`s; etag/last-sync per calendar and other settings in plain prefs; **migrates** the old single-URL install on first open) |
 | Network | `app/.../data/IcsFetcher.kt` (https only, 10 MiB cap, ETag, no redirects https->http, never logs the URL) |
 | Sync | `app/.../sync/Syncer.kt` (shared by UI and worker), `SyncWorker.kt` (WorkManager periodic) |
-| UI | `app/.../ui/MainActivity.kt` (FLAG_SECURE, app lock, deep link `calendarwidget://day/<date>`), `CalendarApp.kt` (Agenda/Month), `SettingsScreen.kt` (calendar list, add/rename/remove, color mode, sync interval, widget options, app lock), `AppTheme.kt`, `AppearanceSection.kt`, `EventTint.kt` (`tintAt(index, palette)`, `CalendarContext`, `opaqueColor`), `Format.kt` |
+| UI | `app/.../ui/MainActivity.kt` (FLAG_SECURE, app lock, deep link `calendarwidget://day/<date>`), `CalendarApp.kt` (Agenda/Month), `SettingsScreen.kt` (state + five dropdown sections: Calendars, Appearance, Widgets, Sync, Security; status line at the top), `SettingsSection.kt` (collapsible card: header with title, collapsed one-line summary and ▾/▴, `AnimatedVisibility` body), `AppTheme.kt`, `AppearanceSection.kt`, `EventTint.kt` (`tintAt(index, palette)`, `CalendarContext`, `opaqueColor`), `Format.kt` |
 | Widgets | `app/.../widget/MonthWidget.kt`, `CalendarWidget.kt` (Upcoming), `Widgets.kt` (refresh bus + `openAppIntent`), `WidgetBackground.kt`, `WidgetText.kt` |
 | Hardening | `AndroidManifest.xml` (only `INTERNET`, `allowBackup=false`, no cleartext), `res/xml/network_security_config.xml` (system CAs only), `data_extraction_rules.xml` |
 | Build | `settings.gradle.kts` (`:app` only included if an Android SDK is found), `gradle/libs.versions.toml`, `app/build.gradle.kts` (task `verifyNoGoogleServices`) |
@@ -73,6 +74,7 @@ Key files:
 - App theme follows system light/dark; dynamic (wallpaper) colors on Android 12+, Material palettes below. Chosen by the agent without asking; the user may prefer plain palettes.
 - Package name `io.github.snow34.calendarwidget` was **guessed** from the repo owner and not confirmed by the user.
 - Debug APK only; no release signing configured.
+- **Settings as dropdowns (user decisions, 2026-11-03):** user asked for Appearance as a submenu/accordion and chose **all groups as dropdown sections** and **several open at once, all start closed** (open state not remembered between visits, only kept across rotation via `rememberSaveable`). Agent choices (not asked): on a fresh install with **no calendars** the Calendars section starts open; feedback/status messages (sync result, removal, lock warning) are shown in a card at the very top of Settings (with an OK button) so they are visible with every section closed; "Color events by" moved from its own block into **Appearance**; sections: Calendars, Appearance, Widgets, Sync, Security.
 - **Appearance settings (user decisions, 2026-11-03):** user asked how to change fonts/colors and chose an **Appearance section in Settings** plus a written "where to change it in code" guide (README Part 6). Controls: theme (system/light/dark), event colors, text size, widget bar height, font. Colors = edit the **8 shared colors** (RGB sliders / hex) + ready-made sets (Default = original look, Pastel, Vivid, Earth); calendars and event-name coloring both use these 8. The user's phone is **Android 12+**, so **minSdk was raised 30 -> 31** (Android 11 no longer supported). Agent choices (not asked): text on a bar is auto black/white (`readableTextOn`); text size multiplies every sp in app and widgets (4 steps 0.85/1/1.15/1.3); widget fonts are limited to system families (Glance cannot load font files); theme override applies to the **app only** (widgets always follow the phone); "use wallpaper colors" switch (default on) resolves the earlier open question about dynamic vs plain colors; bar default height is now 14dp in both app and widget (widget was 13dp); today-circle colors stay constants.
 - **Multiple calendars (user decisions, 2026-11-03):** sources = Google calendars **and** other iCal feeds; coloring = **calendar color with a Settings switch to event-name colors** (default CALENDAR for fresh installs; a *migrated* single-calendar install is set to TITLE so its look does not change); widgets = **all calendars that are switched on** (one shared setting, no per-widget choice). Agent choices (not asked): sync only switched-on calendars; a failing calendar never blocks the others (`SyncResult.failures`); max 20 calendars; duplicate URLs rejected; per-calendar color = palette entry, tap the dot to cycle; calendar name shown on event cards only when >1 calendar; Outlook-style Windows `TZID`s mapped to IANA, unknown ones fall back to the phone zone.
 - "+ Add event" always opens Google's form for the **default** calendar (no reliable way found to preselect another).
@@ -83,7 +85,8 @@ Key files:
 
 | Item | State |
 |---|---|
-| `core` unit tests (65) | **Pass** (Appearance 8, BarMetrics 5, CalendarSources 5, DayGrouping 6, EventColoring 5, EventColors 9, Expander 10, GoogleCalendarLinks 9, WidgetOpacity 3, WindowsTimeZones 5) |
+| `core` unit tests (69) | **Pass** (Appearance 8, BarMetrics 5, CalendarSources 5, DayGrouping 6, EventColoring 5, EventColors 9, Expander 10, GoogleCalendarLinks 9, SettingsSummary 4, WidgetOpacity 3, WindowsTimeZones 5) |
+| Settings dropdown sections | **Pushed, NOT compiled or run anywhere** (UI written blind). Things to check: sections start closed (Calendars open on a fresh install), several open at once, summaries update live, status card at top, `rememberSaveable` of a `Set<String>` does not crash on rotation, nested cards look OK. |
 | Appearance settings (theme, text size, font, bar height, editable colors, presets) | **Pushed, NOT compiled or run anywhere** (app code written blind; `core` logic unit tested). Unverified Glance APIs: `TextStyle(fontFamily=...)` / `androidx.glance.text.FontFamily`, `GlanceModifier.cornerRadius` (needs API 31+, now guaranteed by minSdk 31). If the build fails there, fix or drop widget fonts first. |
 | `:app` builds and runs | **Yes** on the user's emulator (user compiled it; no errors reported after the fixes below) |
 | Month/Upcoming widgets, colors, bars, today circle | Seen working by the user on the emulator |
@@ -140,7 +143,7 @@ Use a **JDK 17-21** for Gradle (Gradle 8.14.3 does not support Java 25; Android 
 2. Settings: under **Add a calendar** paste a secret iCal URL, **Add & sync**; events appear in Agenda and Month. Repeat for a second calendar (and a non-Google `webcal://` feed). Try: switch a calendar off/on, tap its color dot, rename, remove, **Color events by** Calendar/Event name, a bad address (error under the form, other calendars still sync).
 3. Month tab: colored bars with titles, today circle, "+N" overflow, tap day lists events as colored cards, whole screen scrolls.
 4. Add both widgets. Month: arrows change month, tap month name returns to today, tap a day opens the app on that day.
-5. Settings: titles switch (widgets), transparency slider (both widgets; release finger to apply), sync interval chips, app lock.
+5. Settings is five dropdown sections (tap the header): Widgets = titles switch + transparency slider (both widgets; release finger to apply), Sync = interval chips, Security = app lock, Appearance = everything in the Appearance list incl. Color events by.
 6. Switch system light/dark: app **and** widgets follow (item pending confirmation).
 7. Remove all calendars (or switch them all off): widgets show "Tap to add or turn on a calendar"; removed calendars' cached events are deleted.
 8. **Upgrade test:** install the previous APK (single URL), then install this one over it: the calendar must appear in the list (named after the Google calendar id), events still show, colors still by event name.
@@ -188,7 +191,8 @@ Use a **JDK 17-21** for Gradle (Gradle 8.14.3 does not support Java 25; Android 
 
 | Commit | Date | Change |
 |---|---|---|
-| (this commit) | 2026-11-03 | **Appearance settings:** Settings > Appearance (theme/wallpaper colors, text size, font, bar height, 8 editable colors + presets, preview, reset), applied to app and both widgets; `core` gained `Appearance`, `AppearancePresets`, `BarMetrics`, `ColorHex`, `readableTextOn` (+17 tests, 65 total); palette drawables deleted; **minSdk 31**; README Part 6 = where/how to change the look in code. |
+| (this commit) | 2026-11-03 | **Settings as dropdown sections** (Calendars, Appearance, Widgets, Sync, Security), collapsed one-line summaries (`SettingsSummary`, +4 tests, 69 total), status card at the top, Color events by moved into Appearance; README wording updated. |
+| `46d2965` | 2026-11-03 | **Appearance settings:** Settings > Appearance (theme/wallpaper colors, text size, font, bar height, 8 editable colors + presets, preview, reset), applied to app and both widgets; `core` gained `Appearance`, `AppearancePresets`, `BarMetrics`, `ColorHex`, `readableTextOn` (+17 tests, 65 total); palette drawables deleted; **minSdk 31**; README Part 6 = where/how to change the look in code. |
 | `f761a15` | 2026-11-03 | **Multiple calendars:** calendar list in Settings (add/rename/remove/switch/color), per-calendar encrypted cache and sync, merged Agenda/Month/widgets, calendar-vs-title color mode, `webcal://`, Windows TZID map, migration of the old single URL; `core` gained `CalendarSource(s)`, `EventColoring`, `WindowsTimeZones`, `Occurrence.calendarId` (+15 tests, 48 total). |
 | `d1bf7a8` | 2026-11-03 | `+ Add event` (Agenda, Month) and `Edit in Google Calendar` (event cards) open Google Calendar in the browser; `GoogleCalendarLinks` in core (9 tests); `Occurrence.recurring`; Settings + README explain the feed delay. |
 | `063efe9` | 2026-11-03 | Added `handoff.md`. |

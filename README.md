@@ -30,11 +30,11 @@ The app reads your calendar through a private web address, so you don't have to 
 **More than one calendar?** Repeat Part 0 for each calendar (every Google calendar has its own secret address). Google
 usually only shows that address for calendars you own or manage; a calendar someone else shares with you normally has
 none unless its owner made it public. Any other iCal or `webcal://` address works as well, for example
-school holidays or a sports fixtures feed. In the app's **Settings** tab you can then:
+school holidays or a sports fixtures feed. In the app's **Settings** tab, open the **Calendars** section. You can then:
 - add as many as 20 calendars, give each a name, and rename or remove them later (removing only deletes them from the phone);
 - switch a calendar off and on without removing it. Calendars that are switched off are hidden in the app **and** in the widgets;
 - tap a calendar's **color dot** to change its color;
-- choose **Color events by: Calendar** (every event takes its calendar's color, like Google Calendar) or **Event name**
+- in the **Appearance** section, choose **Color events by: Calendar** (every event takes its calendar's color, like Google Calendar) or **Event name**
   (the color is picked from the event's name). If you used an earlier version of the app, your first calendar is kept
   and the colors stay *by event name* until you change this.
 
@@ -69,7 +69,8 @@ A "virtual phone" (called an *emulator*) is a fake phone that runs in a window o
 6. Wait for the phone window to start (a few minutes the first time). The app opens by itself.
    **Important:** the virtual phone already has its own built-in "Calendar" app and widget. That is *not* this app.
    Ours is called **Private Calendar**. Swipe up on the home screen to find it in the app list.
-7. In the app, open **Settings**, paste your secret address (Part 0) under **Add a calendar**, and press **Add & sync**.
+7. In the app, open the **Settings** tab and tap **Calendars** to open that section. Under **Add a calendar**, paste your secret address (Part 0) and press **Add & sync**.
+   (Settings is split into sections: **Calendars**, **Appearance**, **Widgets**, **Sync** and **Security**. Tap a section's name to open or close it. When a section is closed, a short line under its name shows its current choices.)
    (Copy the address on your PC, then in the virtual phone click in the box and press **Ctrl+V**.)
 8. Open the **Agenda** and **Month** tabs to see your events. Every event gets a color, and the same
    event always gets the same color in the app and in the widgets (the colors are picked automatically from the
@@ -93,20 +94,21 @@ find **Private Calendar**, and drag one onto the screen. There are two:
 - **Private Calendar – Upcoming**: a short list of what is coming next.
 
 Widgets show event names by default. Anyone who can see your home screen can read them, so if you
-want to hide them, switch off **Show event titles on the widget** in the app's **Settings** tab. The Month
+want to hide them, open the **Widgets** section in the app's **Settings** tab and switch off **Show event titles on the widget**. The Month
 widget then shows plain colored stripes with no text, and the Upcoming widget shows "Event".
 
-**See-through widgets.** In the app's **Settings** tab, drag the **Widget background** slider. 100% is solid,
+**See-through widgets.** In the **Widgets** section of the app's **Settings** tab, drag the **Widget background** slider. 100% is solid,
 0% is completely see-through, and it moves in steps of 5%. Let go of the slider and both widgets update
 (give them a second). Only the background fades; the colored event bars and the text stay solid. On a bright or
 busy wallpaper a value between 30% and 60% is usually easiest to read.
 
-**Change how it looks.** In the app's **Settings** tab, scroll to **Appearance**. Everything you change there also updates the widgets:
+**Change how it looks.** In the app's **Settings** tab, open the **Appearance** section. Everything you change there also updates the widgets:
 - **Theme:** follow the phone, always light, or always dark (widgets always follow the phone). **Use wallpaper colors**
   gives the app the colors of your wallpaper; switch it off for plain colors.
 - **Text size:** Small, Normal, Large or Extra large (app and widgets).
 - **Font:** Sans-serif, Serif or Monospace. These are the fonts built into Android.
 - **Event bar height:** Compact, Normal, Tall or Extra tall. The bars never get smaller than their text needs.
+- **Color events by:** **Calendar** (every event takes its calendar's color) or **Event name** (the color is picked from the event's name).
 - **Event colors:** pick a ready-made set (Default, Pastel, Vivid, Earth), or tap any of the 8 color squares to change it with
   sliders or a color code like `#D95D77`. Calendars and event names both pick from these 8 colors, and the text on a bar is
   automatically black or white, whichever is easier to read. The sample bars at the top of the section show the result.
@@ -121,7 +123,7 @@ busy wallpaper a value between 30% and 60% is usually easiest to read.
    "Allow USB debugging?" question.
 4. In Android Studio, at the top, open the device list and choose your phone's name.
 5. Click the green **▶ Run** button. The app is installed and starts on your phone.
-6. Open the app's **Settings** tab, paste your secret address under **Add a calendar** and press **Add & sync**.
+6. Open the app's **Settings** tab, tap **Calendars**, paste your secret address under **Add a calendar** and press **Add & sync**.
 7. To add a widget: press and hold on an empty spot of your home screen, tap **Widgets**,
    find **Private Calendar – Month** (or **– Upcoming**), and drag it onto the screen.
 
@@ -140,7 +142,7 @@ without a cable.
 6. On the phone, open the file (for example from the **Downloads** or **Files** app) and tap **Install**.
    If the phone says installing from this source is blocked, tap **Settings**, switch on **Allow from this
    source** for the app you opened the file with, go back and tap **Install** again.
-7. Open **Private Calendar** from the app list, paste your secret address in **Settings** under **Add a calendar**, and press **Add & sync**.
+7. Open **Private Calendar** from the app list, then **Settings → Calendars**. Paste your secret address under **Add a calendar** and press **Add & sync**.
 
 This is a *debug* app file. That is fine for your own phone. It is signed with a throwaway key made by
 Android Studio, so you can only update it with another build from the same PC. To update, build a new APK and
@@ -168,10 +170,10 @@ You can change the look with the settings above, but some things are fixed in th
 **A custom font for the app** (widgets can only use Android's built-in fonts): create the folder `app/src/main/res/font`, copy a
 `.ttf` file into it (name it with lowercase letters, digits and `_` only, like `my_font.ttf`), then in `AppTheme.kt` change one line in
 `typographyFor`, for example `FontChoice.SERIF -> FontFamily(Font(R.font.my_font))` (Android Studio will offer to add the missing imports).
-After that, the **Serif** choice in Settings uses your font.
+After that, the **Serif** choice in Settings → Appearance uses your font.
 
 **Good to know:** the app remembers the colors and look you chose. If you change `DEFAULT_PALETTE` or the defaults and don't see
-any difference, tap **Reset appearance** in Settings once.
+any difference, open Settings → Appearance and tap **Reset appearance** once.
 
 ### If something goes wrong
 
@@ -185,11 +187,11 @@ any difference, tap **Reset appearance** in Settings once.
 | Your phone isn't in the device list | Use a data cable (not charge-only), unlock the phone, tap **Allow** on the phone, and make sure USB debugging is on. |
 | "App not installed" on the phone | Your phone must be Android 12 or newer. Remove any older copy of the app and try again. |
 | "Feed rejected (HTTP 404)" in the app | The secret address changed or was reset. Copy the new one from Google Calendar. |
-| One calendar shows no events but the others do | The error shows under **Sync now** in Settings (for example "Feed rejected (HTTP 404)" means that calendar's address was reset: remove it and add the new one). The other calendars keep working. |
+| One calendar shows no events but the others do | The message appears at the top of the Settings tab after you press **Sync now** in the **Calendars** section (for example "Feed rejected (HTTP 404)" means that calendar's address was reset: remove it and add the new one). The other calendars keep working. |
 | Events from another calendar are an hour or more off | The feed uses an unusual time zone name the app doesn't know, so it falls back to the phone's time zone. Tell whoever maintains this app which feed it is. |
 | "Edit in Google Calendar" opens a day page, not the event | Normal for events Google can't link directly (imported ones, for example). Find the event on that day and edit it there. |
-| A new event doesn't show up in the app | Google refreshes the private calendar address slowly (up to a few hours). Press **Sync now** in Settings later. |
-| Widget shows plain stripes or "Event" instead of names | **Show event titles on the widget** is switched off in Settings. Switch it on. |
+| A new event doesn't show up in the app | Google refreshes the private calendar address slowly (up to a few hours). Press **Sync now** (Settings → Calendars) later. |
+| Widget shows plain stripes or "Event" instead of names | **Show event titles on the widget** is switched off (Settings → Widgets). Switch it on. |
 | Month widget cells are too small to read | Press and hold the widget, then drag its edges to make it bigger. |
 
 ---
@@ -212,7 +214,7 @@ any difference, tap **Reset appearance** in Settings once.
 | Adding / editing events | Done in your web browser on Google's own site. The app has no Google sign-in and no write access to your calendar |
 | Backups | Disabled; transfer rules exclude everything |
 | Screen | Screenshots and the recent-apps preview are blocked |
-| Widgets | Show event titles by default; one switch in Settings hides them (stripes only) |
+| Widgets | Show event titles by default; one switch in Settings → Widgets hides them (stripes only) |
 | App lock | Optional fingerprint / screen lock |
 | Logging | The address and event contents are never logged |
 
