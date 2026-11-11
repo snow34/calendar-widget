@@ -62,13 +62,13 @@ import java.time.ZoneId
 /** One request to show a day. Identity equality on purpose: tapping the same day twice must still re-trigger. */
 class DayFocus(val day: LocalDate)
 
-private enum class Tab(val label: String) { Agenda("Agenda"), Month("Month"), Settings("Settings") }
+private enum class Tab(val label: String) { Agenda("Agenda"), Month("Month"), Calendars("Calendars"), Settings("Settings") }
 
 @Composable
 fun CalendarApp(store: SecureStore, focus: DayFocus?, appearance: Appearance, onAppearanceChange: (Appearance) -> Unit) {
     val context = LocalContext.current
     val repo = remember { CalendarRepository(store) }
-    var tab by remember { mutableStateOf(if (store.hasCalendars()) Tab.Agenda else Tab.Settings) }
+    var tab by remember { mutableStateOf(if (store.hasCalendars()) Tab.Agenda else Tab.Calendars) }
     var refresh by remember { mutableIntStateOf(0) }
     // The calendar list and the coloring rule are re-read after every change made in Settings.
     val cal = remember(refresh, appearance) {
@@ -94,8 +94,9 @@ fun CalendarApp(store: SecureStore, focus: DayFocus?, appearance: Appearance, on
     ) { padding ->
         Box(Modifier.padding(padding).fillMaxSize()) {
             when (tab) {
-                Tab.Agenda -> AgendaScreen(repo, refresh, cal, addEvent, openEvent)
+                Tab.Agenda -> AgendaScreen(repo, refresh, cal, addEvent, openEvent, onOpenCalendars = { tab = Tab.Calendars })
                 Tab.Month -> MonthScreen(repo, refresh, focus, cal, appearance, addEvent, openEvent)
+                Tab.Calendars -> CalendarsScreen(store, context, appearance.palette, onChanged = { refresh++ })
                 Tab.Settings -> SettingsScreen(store, context, appearance, onAppearanceChange, onChanged = { refresh++ })
             }
         }
@@ -114,14 +115,27 @@ private fun loadOccurrences(repo: CalendarRepository, refresh: Int, from: LocalD
 }
 
 @Composable
-private fun AgendaScreen(repo: CalendarRepository, refresh: Int, cal: CalendarContext, addEvent: (LocalDate) -> Unit, openEvent: (Occurrence) -> Unit) {
+private fun AgendaScreen(
+    repo: CalendarRepository, refresh: Int, cal: CalendarContext,
+    addEvent: (LocalDate) -> Unit, openEvent: (Occurrence) -> Unit, onOpenCalendars: () -> Unit,
+) {
     val today = LocalDate.now()
     val items = loadOccurrences(repo, refresh, today, today.plusDays(60))
     val zone = ZoneId.systemDefault()
     val byDay = items.groupBy { it.start.atZone(zone).toLocalDate().coerceAtLeast(today) }.toSortedMap()
     if (byDay.isEmpty()) {
         Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("No events in the next 60 days")
+            when {
+                cal.sources.isEmpty() -> {
+                    Text("No calendars yet")
+                    TextButton(onClick = onOpenCalendars) { Text("Add a calendar") }
+                }
+                cal.sources.none { it.enabled } -> {
+                    Text("All calendars are switched off")
+                    TextButton(onClick = onOpenCalendars) { Text("Open Calendars") }
+                }
+                else -> Text("No events in the next 60 days")
+            }
             TextButton(onClick = { addEvent(today) }) { Text("+ Add event") }
         }
         return
