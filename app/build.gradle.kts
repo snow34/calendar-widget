@@ -15,6 +15,8 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "0.1.0"
+        // Google sign-in (AppAuth) returns to the app through this URL scheme: io.github.snow34.calendarwidget:/oauth2redirect
+        manifestPlaceholders["appAuthRedirectScheme"] = "io.github.snow34.calendarwidget"
     }
 
     buildTypes {
@@ -45,6 +47,7 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.biometric)
     implementation(libs.fragment)
+    implementation(libs.appauth)
 }
 
 // Privacy guarantee: fail the build if anything Google-services-shaped ends up in the runtime classpath.

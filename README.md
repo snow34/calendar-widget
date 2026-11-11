@@ -78,12 +78,15 @@ A "virtual phone" (called an *emulator*) is a fake phone that runs in a window o
    event's name, because Google's private calendar address doesn't include the colors you set in Google Calendar).
    In the **Month** tab each day shows colored bars with the event names, today's date has a light circle,
    and tapping a day lists its events below the grid. If a day has more events than fit, it shows "+2" (or similar).
-9. **Adding and changing events.** This app only *shows* your calendar. Tap **+ Add event** (in the Agenda tab, or in
-   the Month tab for the day you selected) to open Google Calendar's own "new event" page in your web browser, with
-   that day filled in. To change or delete an event, tap **Edit in Google Calendar** on it. Sign in to Google in
-   the browser if it asks. Google updates the private calendar address slowly, so a new or changed event can take
-   **a few hours** to show up in this app. If an event can't be opened directly (for example one imported from another
-   calendar), you land on that day's page in Google Calendar instead.
+9. **Adding and changing events.** Tap **+ Add event** (in the Agenda tab, or in the Month tab for the day you selected).
+   - If you have set up the optional **Google account** sign-in (Part 7), a form opens inside the app. Fill in the name, pick the
+     calendar, the date and time (or **All day**), and optionally a place and notes, then tap **Save**. The event is saved
+     straight to Google Calendar and shows up in the app and widgets immediately.
+   - Without that sign-in, **+ Add event** opens Google Calendar's own "new event" page in your web browser instead.
+   - To change or delete an event, tap **Edit in Google Calendar** on it (this always opens Google's site in the browser).
+   Google updates the private calendar address slowly, so a change made on Google's site can take **a few hours** to show up
+   in this app. If an event can't be opened directly (for example one imported from another calendar), you land on that day's
+   page in Google Calendar instead.
 
 **Widgets.** On the virtual phone's home screen, press and hold on an empty spot, tap **Widgets**,
 find **Private Calendar**, and drag one onto the screen. There are two:
@@ -176,6 +179,52 @@ After that, the **Serif** choice in Settings → Appearance uses your font.
 **Good to know:** the app remembers the colors and look you chose. If you change `DEFAULT_PALETTE` or the defaults and don't see
 any difference, open Settings → Appearance and tap **Reset appearance** once.
 
+### Part 7: Add events from inside the app (optional, about 30 minutes, one time only)
+
+Without this part, **+ Add event** opens Google Calendar in the browser. With it, events are saved straight from the app.
+Google only allows that for apps that are registered with Google, so you register *your own copy* of the app in a free
+Google Cloud project. Nobody else gets access; the project only identifies your app to Google.
+
+> Google changes the look and wording of its Cloud Console often. If a button below is named differently, look for the
+> closest match. I could not check these screens myself.
+
+**A. Find your app's fingerprint (SHA-1)** – Google uses it to recognise your copy of the app.
+1. In Android Studio, open the **Terminal** tab at the bottom.
+2. Type `gradlew.bat signingReport` and press Enter. Wait until it finishes.
+3. In the output, find the block that says `Variant: debug`. Copy the long code after **SHA1:** (it looks like `AB:CD:12:...`).
+   This belongs to the computer you build the app on. If you later build the APK on another computer, repeat step C there.
+
+**B. Create the Google Cloud project**
+1. Open <https://console.cloud.google.com> and sign in with the Google account that owns your calendar.
+2. At the top, open the project list → **New project**. Name it, for example, `Private Calendar`, and click **Create**. Make sure it is selected.
+3. Open the menu → **APIs & Services → Library**, search for **Google Calendar API**, open it and click **Enable**.
+4. Open **APIs & Services → OAuth consent screen** (may be called **Google Auth Platform**). Choose **External**, fill in an app name
+   (e.g. `Private Calendar`) and your e-mail address where asked, and save.
+5. Under **Audience** (or **Publishing status**), click **Publish app** / **In production** and confirm. If you leave it in **Testing**,
+   Google signs the app out every 7 days and you must add your own address as a **test user**.
+
+**C. Create the client ID**
+1. Open **APIs & Services → Credentials** (or **Clients**) → **Create credentials → OAuth client ID**.
+2. Application type: **Android**.
+3. Package name: `io.github.snow34.calendarwidget`
+4. SHA-1 certificate fingerprint: paste the code from step A.
+5. Click **Create**. Then open the new client and, under **Advanced settings**, switch on **Enable custom URI scheme** and **Save**.
+   (Without this, Google shows "Custom URI scheme is not enabled for your Android client".)
+6. Copy the **Client ID**. It ends with `.apps.googleusercontent.com`.
+
+**D. Sign in from the app**
+1. In the app, open **Settings → Google account**.
+2. Paste the client ID and tap **Sign in with Google**. Your browser opens Google's sign-in page.
+3. Google will say the app **isn't verified**. That is expected for your own private app: tap **Advanced → Go to Private Calendar (unsafe)**.
+4. Allow access to your calendar events. The browser returns to the app, and Settings says **Signed in**.
+5. Now **+ Add event** opens the form in the app. You can add events to the Google calendars you added by their **secret address**
+   (other iCal feeds stay view-only).
+
+**What the app can do with this sign-in:** see, add, change and delete events in your Google calendars (it only ever adds them).
+No access to e-mail, contacts, Drive or anything else. The permission is stored encrypted on the phone. **Sign out** in
+Settings → Google account removes it from the phone and asks Google to cancel it; you can also remove it at
+<https://myaccount.google.com/permissions>.
+
 ### If something goes wrong
 
 | What you see | What to do |
@@ -190,6 +239,10 @@ any difference, open Settings → Appearance and tap **Reset appearance** once.
 | "Feed rejected (HTTP 404)" in the app | The secret address changed or was reset. Copy the new one from Google Calendar. |
 | One calendar shows no events but the others do | The message appears at the top of the **Calendars** tab after you press **Sync now** there (for example "Feed rejected (HTTP 404)" means that calendar's address was reset: remove it and add the new one). The other calendars keep working. |
 | Events from another calendar are an hour or more off | The feed uses an unusual time zone name the app doesn't know, so it falls back to the phone's time zone. Tell whoever maintains this app which feed it is. |
+| "Custom URI scheme is not enabled" when signing in | In Google Cloud, open your Android client ID, switch on **Enable custom URI scheme** under **Advanced settings**, save, wait a few minutes, try again (Part 7, C5). |
+| Google says the app is "blocked" or shows "Error 400"/"redirect_uri" when signing in | Check Part 7: package name exactly `io.github.snow34.calendarwidget`, the SHA-1 from the computer that built this app, and the custom URI scheme switched on. |
+| Saving an event says "Google refused" | You can only add to calendars you own (or may edit), and the Google Calendar API must be enabled in your project (Part 7, B3). |
+| Saving an event says the sign-in "expired" | Sign in again in Settings → Google account. If it happens every week, your Google Cloud app is still in **Testing**: publish it (Part 7, B5). |
 | "Edit in Google Calendar" opens a day page, not the event | Normal for events Google can't link directly (imported ones, for example). Find the event on that day and edit it there. |
 | A new event doesn't show up in the app | Google refreshes the private calendar address slowly (up to a few hours). Press **Sync now** in the **Calendars** tab later. |
 | Widget shows plain stripes or "Event" instead of names | **Show event titles on the widget** is switched off (Settings → Widgets). Switch it on. |
@@ -212,7 +265,7 @@ any difference, open Settings → Appearance and tap **Reset appearance** once.
 | Permissions requested by the app | `INTERNET` only (the scheduling library adds a few of its own) |
 | Google/Firebase/Play Services code | None; `gradlew.bat :app:verifyNoGoogleServices` fails the build if any appears |
 | Network | HTTPS only, system certificate authorities only, no plain http, no redirects to http |
-| Adding / editing events | Done in your web browser on Google's own site. The app has no Google sign-in and no write access to your calendar |
+| Adding / editing events | Editing and deleting happen on Google's own site in the browser. Adding happens there too, unless you set up the optional Google sign-in (Part 7): then the app can add events itself and holds an encrypted permission for your calendar events only |
 | Backups | Disabled; transfer rules exclude everything |
 | Screen | Screenshots and the recent-apps preview are blocked |
 | Widgets | Show event titles by default; one switch in Settings → Widgets hides them (stripes only) |

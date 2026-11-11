@@ -1,11 +1,14 @@
 package io.github.snow34.calendarwidget.sync
 
 import android.content.Context
+import io.github.snow34.calendarwidget.core.IcsParser
+import io.github.snow34.calendarwidget.core.PendingEvents
 import io.github.snow34.calendarwidget.data.IcsFetcher
 import io.github.snow34.calendarwidget.data.SecureStore
 import io.github.snow34.calendarwidget.widget.Widgets
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.time.ZoneId
 
 data class SyncFailure(val calendarName: String, val reason: String, val retryable: Boolean)
 
@@ -51,6 +54,15 @@ object Syncer {
                     }
                     is IcsFetcher.Result.Failed -> failures += SyncFailure(cal.name, r.reason, r.retryable)
                 }
+            }
+            // Events added in the app stay visible until their calendar's feed contains them.
+            val pending = store.loadPendingEvents()
+            if (pending.isNotEmpty()) {
+                val zone = ZoneId.systemDefault()
+                val feedUids = store.loadCalendars().associate { cal ->
+                    cal.id to (store.loadIcs(cal.id)?.let { text -> IcsParser(zone).parse(text).map { it.uid }.toSet() } ?: emptySet())
+                }
+                store.savePendingEvents(PendingEvents.prune(pending, feedUids, System.currentTimeMillis()))
             }
         }
         if (updated + unchanged > 0) Widgets.updateAll(app)

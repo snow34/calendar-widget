@@ -25,6 +25,12 @@ class SettingsSummaryTest {
         assertEquals("Titles shown, background 100%", SettingsSummary.widgets(true, 250)) // clamped
     }
 
+    @Test fun googleAccount() {
+        assertEquals("Not set up: Add event opens Google Calendar", SettingsSummary.googleAccount(false, false))
+        assertEquals("Not signed in", SettingsSummary.googleAccount(true, false))
+        assertEquals("Signed in: new events are saved in the app", SettingsSummary.googleAccount(true, true))
+    }
+
     @Test fun syncAndSecurity() {
         assertEquals("Every hour", SettingsSummary.sync(1))
         assertEquals("Every 3 hours", SettingsSummary.sync(3))

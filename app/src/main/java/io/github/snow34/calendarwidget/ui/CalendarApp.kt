@@ -51,6 +51,7 @@ import io.github.snow34.calendarwidget.core.GoogleCalendarLinks
 import io.github.snow34.calendarwidget.core.Occurrence
 import io.github.snow34.calendarwidget.data.CalendarRepository
 import io.github.snow34.calendarwidget.data.SecureStore
+import io.github.snow34.calendarwidget.google.GoogleEvents
 import io.github.snow34.calendarwidget.core.groupByDay
 import androidx.compose.runtime.LaunchedEffect
 import kotlinx.coroutines.Dispatchers
@@ -74,14 +75,29 @@ fun CalendarApp(store: SecureStore, focus: DayFocus?, appearance: Appearance, on
     val cal = remember(refresh, appearance) {
         store.loadCalendars().let { CalendarContext(it, EventColoring.from(it, store.colorMode), appearance.palette) }
     }
-    // Adding and editing happen in Google Calendar's website; the app itself stays read-only.
-    val addEvent: (LocalDate) -> Unit = { day -> openInBrowser(context, GoogleCalendarLinks.addEventUrl(day)) }
+    // Adding: in the app when signed in to Google (Settings → Google account), otherwise on Google Calendar's website.
+    // Editing and deleting always happen on Google Calendar's website.
+    var addingOn by remember { mutableStateOf<LocalDate?>(null) }
+    val writable = GoogleEvents.writableCalendars(cal.sources)
+    val addEvent: (LocalDate) -> Unit = { day ->
+        if (store.hasGoogleAuth() && writable.isNotEmpty()) addingOn = day
+        else openInBrowser(context, GoogleCalendarLinks.addEventUrl(day))
+    }
     val openEvent: (Occurrence) -> Unit = { o ->
         val calendarId = cal.sources.firstOrNull { it.id == o.calendarId }?.let { GoogleCalendarLinks.calendarIdFromFeedUrl(it.url) }
         openInBrowser(context, GoogleCalendarLinks.eventUrl(o, calendarId, ZoneId.systemDefault()))
     }
     // Opened from a day in the month widget: jump to the Month tab.
     LaunchedEffect(focus) { if (focus != null) tab = Tab.Month }
+
+    addingOn?.let { day ->
+        AddEventDialog(
+            initialDate = day,
+            calendars = writable,
+            onDismiss = { addingOn = null },
+            onSave = { source, draft -> GoogleEvents.add(context, store, source, draft).also { if (it == null) refresh++ } },
+        )
+    }
 
     Scaffold(
         bottomBar = {

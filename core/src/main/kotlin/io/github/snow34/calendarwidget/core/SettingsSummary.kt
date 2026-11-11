@@ -31,4 +31,10 @@ object SettingsSummary {
     fun sync(hours: Int): String = if (hours == 1) "Every hour" else "Every $hours hours"
 
     fun security(appLockEnabled: Boolean): String = if (appLockEnabled) "App lock on" else "App lock off"
+
+    fun googleAccount(hasClientId: Boolean, signedIn: Boolean): String = when {
+        signedIn -> "Signed in: new events are saved in the app"
+        hasClientId -> "Not signed in"
+        else -> "Not set up: Add event opens Google Calendar"
+    }
 }

@@ -7,11 +7,13 @@ import io.github.snow34.calendarwidget.core.CalendarSource
 import io.github.snow34.calendarwidget.core.CalendarSources
 import io.github.snow34.calendarwidget.core.ColorMode
 import io.github.snow34.calendarwidget.core.EventColors
+import io.github.snow34.calendarwidget.core.PendingEvent
 import io.github.snow34.calendarwidget.core.WidgetOpacity
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 import java.io.File
+import java.time.Instant
 import java.util.UUID
 
 /**
@@ -60,7 +62,61 @@ class SecureStore(context: Context) {
         saveCalendars(loadCalendars().filterNot { it.id == id })
         File(dir, icsFile(id)).delete()
         prefs.edit().remove(etagKey(id)).remove(lastSyncKey(id)).apply()
+        savePendingEvents(loadPendingEvents().filterNot { it.calendarId == id })
     }
+
+    // ---- Google account (only for adding events in the app) ----
+
+    /** The OAuth client ID from the user's own Google Cloud project. Not a secret (it identifies the app, not the user). */
+    var googleClientId: String?
+        get() = prefs.getString(KEY_GOOGLE_CLIENT_ID, null)?.takeIf { it.isNotBlank() }
+        set(v) = prefs.edit().putString(KEY_GOOGLE_CLIENT_ID, v?.trim()).apply()
+
+    fun hasGoogleAuth(): Boolean = File(dir, GOOGLE_AUTH_FILE).exists()
+
+    /** The serialized sign-in state (includes the refresh token), stored encrypted. */
+    fun loadGoogleAuth(): String? = read(GOOGLE_AUTH_FILE)
+    fun saveGoogleAuth(json: String) = write(GOOGLE_AUTH_FILE, json)
+    fun clearGoogleAuth() { File(dir, GOOGLE_AUTH_FILE).delete() }
+
+    // ---- events added in the app that the feed does not show yet ----
+
+    fun loadPendingEvents(): List<PendingEvent> = synchronized(LOCK) {
+        val text = read(PENDING_FILE) ?: return emptyList()
+        try {
+            val arr = JSONArray(text)
+            (0 until arr.length()).mapNotNull { i ->
+                val o = arr.optJSONObject(i) ?: return@mapNotNull null
+                PendingEvent(
+                    calendarId = o.getString("calendar"),
+                    uid = o.getString("uid"),
+                    title = o.optString("title"),
+                    location = o.optString("location").ifBlank { null },
+                    allDay = o.optBoolean("allDay"),
+                    start = Instant.ofEpochMilli(o.getLong("start")),
+                    end = Instant.ofEpochMilli(o.getLong("end")),
+                    createdAtMillis = o.getLong("created"),
+                )
+            }
+        } catch (_: JSONException) {
+            emptyList()
+        }
+    }
+
+    fun savePendingEvents(list: List<PendingEvent>) = synchronized(LOCK) {
+        if (list.isEmpty()) { File(dir, PENDING_FILE).delete(); return@synchronized }
+        val arr = JSONArray()
+        list.forEach {
+            arr.put(
+                JSONObject().put("calendar", it.calendarId).put("uid", it.uid).put("title", it.title)
+                    .put("location", it.location ?: "").put("allDay", it.allDay)
+                    .put("start", it.start.toEpochMilli()).put("end", it.end.toEpochMilli()).put("created", it.createdAtMillis),
+            )
+        }
+        write(PENDING_FILE, arr.toString())
+    }
+
+    fun addPendingEvent(event: PendingEvent) = synchronized(LOCK) { savePendingEvents(loadPendingEvents() + event) }
 
     // ---- per-calendar cache and sync state ----
 
@@ -186,6 +242,9 @@ class SecureStore(context: Context) {
         val LOCK = Any()
         val SAFE_ID = Regex("[A-Za-z0-9-]{1,64}")
         const val CALENDARS_FILE = "calendars.json.enc"
+        const val GOOGLE_AUTH_FILE = "google_auth.json.enc"
+        const val PENDING_FILE = "pending_events.json.enc"
+        const val KEY_GOOGLE_CLIENT_ID = "google_client_id"
         const val LEGACY_ID = "main"
         const val LEGACY_URL_FILE = "feed_url.enc"
         const val LEGACY_ICS_FILE = "events.ics.enc"
