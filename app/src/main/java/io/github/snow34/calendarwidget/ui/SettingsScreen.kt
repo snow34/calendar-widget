@@ -218,8 +218,8 @@ internal fun SettingsScreen(
 
         item(key = "note") {
             Text(
-                "Adding and editing events opens Google Calendar in your web browser; this app only shows your calendars. " +
-                    "Google refreshes the private calendar address slowly, so a change can take a few hours to appear here.",
+                "Editing and deleting events opens Google Calendar in your web browser. Adding does too, unless you sign in " +
+                    "under Google account above. Google refreshes the private calendar address slowly, so a change can take a few hours to appear here.",
                 style = MaterialTheme.typography.bodySmall,
             )
         }

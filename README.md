@@ -1,10 +1,11 @@
 # calendar-widget
 
-A private, read-only calendar app and home-screen widget for Android. It shows your Google Calendar
-events, and it is built so that nothing else on your phone is shared with Google.
+A private calendar app and home-screen widgets for Android. It shows your Google Calendar
+events (and other calendars), and it is built so that nothing else on your phone is shared with Google.
+Adding events from inside the app is optional (Part 7); without it the app only reads your calendars.
 
-> **Status:** early version. The calculation part is tested, but the Android app has not been built on a
-> real machine yet. Your first build may show a few errors. If it does, copy the message and send it
+> **Status:** early version. The calculation part is tested and the app has been built and run, but the newest
+> features are not tried yet. A build after an update may show a few errors. If it does, copy the message and send it
 > to whoever is helping you build this. They are usually quick to fix.
 
 ---
@@ -252,7 +253,9 @@ Settings → Google account removes it from the phone and asks Google to cancel 
 
 ## How it works
 
-- You paste each calendar's **secret iCal address** once. No Google sign-in, OAuth or Google code is involved.
+- You paste each calendar's **secret iCal address** once. Reading your calendars needs no Google sign-in and no Google code.
+- Only if you set up the optional Google sign-in (Part 7) does the app hold a permission to **add** events to your
+  Google calendars (calendar events only, stored encrypted). It still reads through the secret addresses.
 - A background job downloads the calendar file over HTTPS and stores it encrypted (AES-256-GCM, with a key
   that can't be taken out of the phone's Keystore). The address is stored the same way.
 - The app (agenda and month views) and the two widgets (month grid, upcoming list) read the encrypted copy. Repeating events, exceptions and
